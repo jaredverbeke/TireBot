@@ -1,0 +1,14 @@
+segment_name,segment_start,segment_end,surface_type,selection_risk
+Emporia neutral rollout,0,10,road,1
+early Flint Hills gravel,10,25,cat2,1.1
+chunky rollers toward Eskridge,25,40,cat2,1.2
+post oasis hardpack tempo,40,55,cat2,1.15
+rough sector into Alma checkpoint,55,70,cat3,1.35
+Alma reset and east gravel,70,85,cat2,1.2
+long grassland grind to Alta Vista,85,112,cat2,1.1
+post oasis deep gravel,112,130,cat2,1.25
+Council Grove approach,130,148,cat2,1.3
+post checkpoint tempo gravel,148,165,cat1,1.1
+late-race fatigue and rough bands,165,185,cat3,1.45
+final gravel push,185,198,cat1,1.15
+Emporia pavement finish,198,202.24,road,1.05
