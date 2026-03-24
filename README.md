@@ -31,8 +31,7 @@ streamlit run app.py
 
 ## Whitepaper (read online)
 
-- **Reader (GitHub Pages):** [jaredverbeke.github.io/TireBot](https://jaredverbeke.github.io/TireBot/)
-- **GitHub:** [docs/WHITEPAPER.md in the browser](https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.md)
+- [jaredverbeke.github.io/TireBot](https://jaredverbeke.github.io/TireBot/) (GitHub Pages)
 
 The app lets you:
 

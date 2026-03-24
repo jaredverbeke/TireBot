@@ -18,9 +18,8 @@ TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.
 BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
 PRESSURE_BASELINE_CSV = ROOT / "data" / "wolf_tooth_baseline.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
-# Whitepaper: GitHub Pages reader (docs/) + GitHub source view.
+# Whitepaper: GitHub Pages site (serves docs/index.html + WHITEPAPER.md).
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
-WHITEPAPER_ONLINE_GITHUB_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.md"
 
 FEEDBACK_EMAIL = "jaredverbeke@gmail.com"
 
@@ -695,9 +694,7 @@ def main() -> None:
     st.markdown('<p class="tb-section-label">Science &amp; assumptions</p>', unsafe_allow_html=True)
     st.markdown("### Methodology")
     st.markdown(
-        f"**[Read the whitepaper]({WHITEPAPER_ONLINE_PAGES_URL})** — reader view (GitHub Pages). "
-        f"**[Same doc on GitHub]({WHITEPAPER_ONLINE_GITHUB_URL})** — rendered Markdown, history & edits. "
-        "Data sources, assumptions, and calculations."
+        f"**[Read the whitepaper]({WHITEPAPER_ONLINE_PAGES_URL})** — methodology, data sources, assumptions, and calculations."
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
