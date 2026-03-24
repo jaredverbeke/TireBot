@@ -50,12 +50,36 @@ def normalize_tire_name(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip().lower())
 
 
+def _strip_key_row(row: Dict[str, object]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for k, v in row.items():
+        if k is None:
+            continue
+        key = str(k).strip()
+        out[key] = "" if v is None else str(v).strip()
+    return out
+
+
+def _first_float(row: Dict[str, str], *header_names: str) -> Optional[float]:
+    for h in header_names:
+        if h in row:
+            v = parse_float(row[h])
+            if v is not None:
+                return v
+    return None
+
+
 def load_brr_crr_csv(csv_path: Path) -> List[Dict[str, object]]:
     """Optional overrides from Bicycle Rolling Resistance (manual Pro View export / copy).
 
-    Columns: tire_name, road_crr, cat1_crr, cat2_crr, cat3_crr, brr_review_url, notes
+    Supported headers (strip-safe):
+
+    - Tire name: ``tire_name`` or ``Tire``
+    - Road / smooth: ``road_crr``, ``smooth_pavement_crr``, ``Smooth Pavement``; if those are
+      empty, ``BRR Drum`` is used as a fallback for the road surface.
+    - Gravel: ``cat1_crr`` / ``Cat 1 Gravel``, same pattern for cat2 and cat3.
+
     Values must be CRR coefficients (same units as the Karrasch CSV), not watts.
-    Alternate column smooth_pavement_crr maps to road if road_crr is empty.
     """
     if not csv_path.exists():
         return []
@@ -63,18 +87,26 @@ def load_brr_crr_csv(csv_path: Path) -> List[Dict[str, object]]:
     with csv_path.open("r", newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            name = (row.get("tire_name") or "").strip()
+            r = _strip_key_row(row)
+            name = (r.get("tire_name") or r.get("Tire") or "").strip()
             if not name or name.startswith("#"):
+                continue
+            if name.lower() == "tire":
                 continue
             rec: Dict[str, object] = {
                 "tire_name": name,
                 "width_mm": parse_width_mm(name),
             }
-            for surf in SURFACE_TO_COL.keys():
-                col = f"{surf}_crr"
-                rec[surf] = parse_float((row.get(col) or "").strip())
-            if rec["road"] is None:
-                rec["road"] = parse_float((row.get("smooth_pavement_crr") or "").strip())
+            rec["road"] = _first_float(
+                r,
+                "road_crr",
+                "smooth_pavement_crr",
+                "Smooth Pavement",
+                "BRR Drum",
+            )
+            rec["cat1"] = _first_float(r, "cat1_crr", "Cat 1 Gravel")
+            rec["cat2"] = _first_float(r, "cat2_crr", "Cat 2 Gravel")
+            rec["cat3"] = _first_float(r, "cat3_crr", "Cat 3 Gravel")
             if sum(1 for s in SURFACE_TO_COL if rec[s] is not None) == 0:
                 continue
             rows_out.append(rec)

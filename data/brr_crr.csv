@@ -1,1 +1,46 @@
-tire_name,road_crr,cat1_crr,cat2_crr,cat3_crr,brr_review_url,notes
+﻿Tire,BRR Drum,Smooth Pavement,Cat 1 Gravel,Cat 2 Gravel,Cat 3 Gravel
+Tire ,,,,,
+Vittoria Corsa PRO Control 700 x 34,0.0045,0.004007419,0.0087,0.012733467,0.020086943
+Schwalbe PRO ONE ALLROAD 700 x 40,,0.0039,0.0086,0.012144458,0.018393902
+Hutchinson Caracal Race 700 x 40,0.0041,0.0037,0.0086,0.0118,0.017872189
+Vittoria Corsa PRO Control 700 x 42,,0.0037,0.007362725,0.010270923,0.015340915
+Conti Terra Speed 700 x 45,0.0049,0.004254337,0.0098,0.0139,0.020324244
+Specialized Pathfinder TLR 700 x 45,0.006,0.004907265,0.0098,0.0133,0.019446939
+Maxxis Reaver HYPR-X 700 x 45,0.0057,0.005,0.009,0.0125,0.0184
+Maxxis Rambler HYPR-X 700 x 45 ,0.0062,0.0057,0.0098,0.0129,0.018862068
+Schwalbe G ONE RS PRO 700 x 45,0.0057,0.0042,0.0082,0.0113,0.0172
+Schwalbe G ONE RX PRO 700 x 45,0.0054,0.0046,0.0088,0.0119,0.017399892
+Vittoria Terreno Pro T30 700 x 45,,0.0048,0.0088,0.0121,0.0174
+Hutchinson Caracal Race 700 x 45,0.0047,0.0037,0.0076,0.0108,0.015791499
+Tufo Gravel Thundero 700 x 48,0.0056,0.004672425,0.0085,0.0118,0.016882566
+Rene Herse Oracle Ridge Standard 700 x 48,0.0073,0.0057,0.0096,0.0133,0.019028655
+Enve Hex Race 700 x 48,0.0054,0.0048,0.0091,0.0118,0.016882566
+Conti Terra Hardpack 700 x 50,0.0056,0.00467415,0.0104,0.0144,0.020300535
+Specialized Tracer TLR 700 x 50,,0.005114057,0.0098,0.013,0.0168
+Schwalbe G ONE RX PRO 700 x 50,0.0058,0.0043,0.0086,0.0116,0.016353209
+Maxxis Maxxlite 29 x 2.0,,0.005029013,0.0096,0.0124,0.0158
+Scwhalbe Thunder Burt SG 29 x 2.1 ,0.0047,0.0042,0.008,0.0103,0.0157
+Conti Race King Pure Grip 29 x 2.0,0.007,0.006,0.0106,0.0135,0.018918532
+Schwalbe Thunder Burt SG 29 x 2.25,0.0047,0.0042,0.0081,0.0103,0.0151
+Schwalbe Rick XC Pro Speed 29 x 2.25,0.0053,0.0047,0.0092,0.0115,0.0154
+Schwalbe G ONE RS PRO 700 x 55,0.006,0.0043,0.0083,0.011,0.0153
+Schwalbe G ONE RX PRO 700 x 55,0.0064,0.0047,0.0087,0.0116,0.0157
+Scwhalbe Thunder Burt SG 29 x 2.25,0.0047,0.0042,0.0081,0.0103,0.0151
+Vittoria Terreno XCR 29 x 2.1,0.0057,0.005,0.0097,0.0125,0.0165
+Kenda Rush Pro SCT 29 x 2.2,0.0074,0.0056,0.0097,0.0119,0.0156
+Conti Race King Black Chili 29 x 2.2 ,0.0055,0.0047,0.0091,0.0114,0.0155
+Conti Dubnital Rapid Race 29 x 2.2,0.0061,0.0048,0.0094,0.0115,0.0155
+Vittoria Peyote XC Race 29 x 2.25,0.0063,0.0049,0.0096,0.0116,0.0152
+Maxxis Aspen ST 170 29 x 2.25,0.0067,0.006,0.0096,0.0115,0.0154
+Specialized Air Trak Flex Lite 29 x 2.35,0.0073,0.0058,0.0099,0.0121,0.0154
+Schwalbe G-One Speed PRO 29 x 2.35,0.0036,0.0036,0.0072,0.0094,0.0137
+Schwalbe Rick XC Pro Speed 29 x 2.4,0.0057,0.0049,0.0086,0.0109,0.0145
+Pirelli Scorpion XC RH 29 x 2.4 - Race,0.0055,0.0052,0.0096,0.0118,0.015
+Pirelli Scorpion XC RC Team 29 x 2.4,0.009,0.0067,0.0112,0.0136,0.0165
+Vittoria Peyote XC Race 29 x 2.4,0.0064,0.0051,0.0097,0.0119,0.0146
+Vittoria Mezcal XC Race 29 x 2.4,0.0069,0.0053,0.009621631,0.01185714,0.015353366
+Vittoria Terreno XC Race 29 x 2.4,0.0057,0.0044,0.0081,0.0105,0.0144
+Conti Dubnital Rapid Race 29 x 2.4,0.0062,0.0049,0.0094,0.0117,0.0147
+VIttoria Barzo XC Race 29 x 2.4,0.0074,0.0055,0.0098,0.012,0.0147
+Maxxis Aspen 29 x 2.4,0.009,0.006701748,0.012166367,0.0132,0.0159
+NOTE: BRR Drum (Low) values in italics are current estimates from my smooth pavement testing.,,,,,
