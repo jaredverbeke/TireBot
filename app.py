@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import csv
+import html
 import math
 import re
 import urllib.parse
@@ -43,50 +44,191 @@ SPEED_OPTIONS = {
 def inject_styles() -> None:
     st.markdown(
         """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+    :root {
+        --tb-accent: #f97316;
+        --tb-accent-soft: rgba(249, 115, 22, 0.14);
+        --tb-border: rgba(249, 115, 22, 0.22);
+        --tb-text: #f1f5f9;
+        --tb-text-dim: #94a3b8;
+        --tb-surface: rgba(20, 27, 45, 0.72);
+        --tb-surface-2: rgba(15, 23, 42, 0.55);
+    }
     .block-container {
-        padding-top: 1.4rem;
-        padding-bottom: 2.5rem;
-        max-width: 1100px;
+        padding-top: 1.25rem;
+        padding-bottom: 3rem;
+        max-width: 1120px;
+    }
+    .stApp {
+        font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.01em;
+    }
+    h1, h2, h3 {
+        font-family: "Outfit", ui-sans-serif, system-ui, sans-serif !important;
+        letter-spacing: -0.02em;
+    }
+    /* Metric tiles (Streamlit versions use stMetric or metric-container) */
+    [data-testid="stMetric"],
+    [data-testid="metric-container"] {
+        background: var(--tb-surface) !important;
+        border: 1px solid var(--tb-border) !important;
+        border-radius: 14px !important;
+        padding: 0.65rem 0.85rem !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    [data-testid="stMetric"] label,
+    [data-testid="metric-container"] label {
+        color: var(--tb-text-dim) !important;
+        font-size: 0.78rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 600 !important;
+    }
+    [data-testid="stMetricValue"],
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 1.35rem !important;
+        font-weight: 600 !important;
+    }
+    /* Expanders */
+    [data-testid="stExpander"] details {
+        border: 1px solid var(--tb-border) !important;
+        border-radius: 12px !important;
+        background: var(--tb-surface-2) !important;
+    }
+    /* Primary CTA */
+    .stButton > button[kind="primary"] {
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 2px 12px rgba(249, 115, 22, 0.25);
+    }
+    .tb-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(253, 186, 116, 0.95);
+        margin: 0 0 0.35rem;
     }
     .tb-hero {
-        background: linear-gradient(120deg, #1f2937 0%, #3f2f1d 52%, #8b5e34 100%);
-        border-radius: 16px;
-        padding: 22px 24px;
-        color: #f3f4f6;
-        margin-bottom: 1rem;
-        border: 1px solid rgba(217, 119, 6, 0.35);
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(ellipse 90% 120% at 100% 0%, rgba(249, 115, 22, 0.18) 0%, transparent 55%),
+            radial-gradient(ellipse 70% 80% at 0% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+            linear-gradient(125deg, #0f172a 0%, #1c1917 42%, #292524 100%);
+        border-radius: 18px;
+        padding: 1.35rem 1.5rem 1.45rem;
+        color: var(--tb-text);
+        margin-bottom: 1.15rem;
+        border: 1px solid var(--tb-border);
+        box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+            0 20px 50px rgba(0, 0, 0, 0.45);
     }
     .tb-hero h1 {
-        font-size: 1.65rem;
-        line-height: 1.2;
+        font-size: clamp(1.45rem, 3vw, 1.85rem);
+        line-height: 1.15;
         margin: 0;
+        font-weight: 700;
     }
     .tb-hero p {
-        margin: 0.45rem 0 0;
-        color: #e2e8f0;
-        font-size: 0.98rem;
+        margin: 0.55rem 0 0;
+        color: #cbd5e1;
+        font-size: 1rem;
+        line-height: 1.5;
+        max-width: 36rem;
     }
     .tb-chip {
         display: inline-block;
-        padding: 0.25rem 0.55rem;
+        padding: 0.3rem 0.65rem;
         border-radius: 999px;
-        background: rgba(217, 119, 6, 0.16);
-        border: 1px solid rgba(217, 119, 6, 0.5);
-        font-size: 0.8rem;
-        margin-right: 0.4rem;
+        background: var(--tb-accent-soft);
+        border: 1px solid rgba(249, 115, 22, 0.42);
+        font-size: 0.78rem;
+        font-weight: 500;
+        margin-right: 0.45rem;
+        margin-top: 0.35rem;
+        color: #fed7aa;
     }
     .tb-card {
-        border: 1px solid rgba(217, 119, 6, 0.24);
-        border-radius: 14px;
-        background: rgba(17, 24, 39, 0.5);
-        padding: 0.85rem 1rem;
-        margin-bottom: 0.9rem;
+        border: 1px solid var(--tb-border);
+        border-radius: 16px;
+        background: var(--tb-surface);
+        padding: 1.05rem 1.2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(8px);
+    }
+    .tb-card h3, .tb-card [data-testid="stHeader"] {
+        margin-top: 0 !important;
+    }
+    .tb-section-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--tb-accent);
+        margin: 0 0 0.2rem;
     }
     .tb-muted {
-        color: #94a3b8;
+        color: var(--tb-text-dim);
         font-size: 0.9rem;
+        line-height: 1.55;
+    }
+    .tb-divider-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1.5rem 0 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--tb-text-dim);
+    }
+    .tb-divider-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--tb-border), transparent);
+    }
+    .tb-rec-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.85rem 1rem;
+        margin: 0.5rem 0 0.75rem;
+    }
+    .tb-rec-item {
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .tb-rec-k {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--tb-text-dim);
+        margin-bottom: 0.25rem;
+    }
+    .tb-rec-v {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--tb-text);
+        line-height: 1.35;
+        word-break: break-word;
+    }
+    [data-testid="stDataFrame"] {
+        border: 1px solid var(--tb-border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     }
 </style>
         """,
@@ -410,6 +552,7 @@ def render_feedback_footer(route_label: Optional[str] = None) -> None:
     """Opens the visitor's email client (mailto:). No server-side email on Streamlit Cloud."""
     st.divider()
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
+    st.markdown('<p class="tb-section-label">Contact</p>', unsafe_allow_html=True)
     st.subheader("Feedback")
     st.caption(
         "Opens your email app to send to the TireBot maintainer. Nothing is transmitted from this server."
@@ -474,26 +617,28 @@ def main() -> None:
     st.markdown(
         """
 <div class="tb-hero">
+  <p class="tb-eyebrow">Gravel · MTB · Race setup</p>
   <h1>TireBot Race Setup Advisor</h1>
   <p>Dial your setup for gravel race speed with route-aware tire and pressure recommendations.</p>
-  <div style="margin-top: 0.7rem;">
-    <span class="tb-chip">Route-Aware</span>
-    <span class="tb-chip">CRR-Based</span>
-    <span class="tb-chip">Race-Day Pressure</span>
+  <div style="margin-top: 0.85rem;">
+    <span class="tb-chip">Route-aware</span>
+    <span class="tb-chip">CRR-based</span>
+    <span class="tb-chip">Race-day pressure</span>
   </div>
 </div>
         """,
         unsafe_allow_html=True,
     )
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
+    st.markdown('<p class="tb-section-label">Science &amp; assumptions</p>', unsafe_allow_html=True)
     st.markdown("### Methodology")
     st.markdown(
-        f"[Read the TireBot whitepaper]({WHITEPAPER_URL}) to understand data sources, assumptions, and calculations."
+        f"[Read the TireBot whitepaper]({WHITEPAPER_URL}) for data sources, assumptions, and calculations."
     )
     if WHITEPAPER_PDF_PATH.exists():
         whitepaper_pdf = WHITEPAPER_PDF_PATH.read_bytes()
         st.download_button(
-            "Download Whitepaper (.pdf)",
+            "Download whitepaper (PDF)",
             data=whitepaper_pdf,
             file_name="TireBot_Whitepaper.pdf",
             mime="application/pdf",
@@ -503,7 +648,8 @@ def main() -> None:
     events = discover_events(ROUTES_DIR)
 
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
-    st.subheader("Ride Inputs")
+    st.markdown('<p class="tb-section-label">Your ride</p>', unsafe_allow_html=True)
+    st.subheader("Ride inputs")
 
     if not events:
         st.warning(
@@ -557,13 +703,13 @@ def main() -> None:
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
             top_n = st.slider("Top tire options", min_value=3, max_value=20, value=8, step=1)
 
-        submitted = st.form_submit_button("Generate Recommendation", use_container_width=True)
+        submitted = st.form_submit_button("Generate recommendation", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
     route_context_str = event_label
 
     if not submitted:
-        st.info("Select route and weight, then click Generate Recommendation.")
+        st.info("Choose a route and rider weight, then run **Generate recommendation**.")
         render_feedback_footer(route_context_str)
         return
 
@@ -617,6 +763,7 @@ def main() -> None:
     winner_aero_penalty = winner["aero_penalty_watts"]
     winner_total_watts = winner["total_watts"]
 
+    st.markdown('<div class="tb-divider-label">Snapshot</div>', unsafe_allow_html=True)
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Route Distance", f"{route_stats['distance_mi']:.1f} mi")
     m2.metric("Speed Assumption", f"{avg_speed_mph:.1f} mph")
@@ -626,14 +773,21 @@ def main() -> None:
     left, right = st.columns([1.35, 1])
     with left:
         st.markdown('<div class="tb-card">', unsafe_allow_html=True)
+        st.markdown('<p class="tb-section-label">Winner</p>', unsafe_allow_html=True)
         st.subheader("Recommendation")
+        wn = html.escape(str(winner["tire_name"]))
         st.markdown(
-            f"**Tire choice:** `{winner['tire_name']}`\n\n"
-            f"**Pressure:** `{front_psi:.1f} psi front / {rear_psi:.1f} psi rear`\n\n"
-            f"**Rolling resistance:** `{winner_rr_watts:.1f} W`\n\n"
-            f"**Aero width penalty:** `{winner_aero_penalty:+.1f} W`\n\n"
-            f"**Tire mass penalty:** `{winner['mass_penalty_watts']:+.2f} W` ({winner['tire_mass_g']:.0f} g each)\n\n"
-            f"**Total resistance power:** `{winner_total_watts:.1f} W`"
+            f"""
+<div class="tb-rec-grid">
+  <div class="tb-rec-item"><span class="tb-rec-k">Tire choice</span><span class="tb-rec-v">{wn}</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Pressure (F / R)</span><span class="tb-rec-v">{front_psi:.1f} / {rear_psi:.1f} psi</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Rolling resistance</span><span class="tb-rec-v">{winner_rr_watts:.1f} W</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Aero width penalty</span><span class="tb-rec-v">{winner_aero_penalty:+.1f} W</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Tire mass penalty</span><span class="tb-rec-v">{winner['mass_penalty_watts']:+.2f} W ({winner['tire_mass_g']:.0f} g / tire)</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Total resistance</span><span class="tb-rec-v">{winner_total_watts:.1f} W</span></div>
+</div>
+""",
+            unsafe_allow_html=True,
         )
         st.markdown(
             f'<p class="tb-muted">Source: {pressure_source}. Route length from segments: {route_stats["distance_mi"]:.1f} mi. '
@@ -649,13 +803,15 @@ def main() -> None:
 
     with right:
         st.markdown('<div class="tb-card">', unsafe_allow_html=True)
-        st.subheader("Route Composition")
+        st.markdown('<p class="tb-section-label">Course mix</p>', unsafe_allow_html=True)
+        st.subheader("Route composition")
         st.progress(min(max(route_stats["road_pct"] / 100.0, 0.0), 1.0), text=f"Road: {route_stats['road_pct']:.1f}%")
         st.progress(min(max(route_stats["cat1_pct"] / 100.0, 0.0), 1.0), text=f"Cat 1: {route_stats['cat1_pct']:.1f}%")
         st.progress(min(max(route_stats["cat2_pct"] / 100.0, 0.0), 1.0), text=f"Cat 2: {route_stats['cat2_pct']:.1f}%")
         st.progress(min(max(route_stats["cat3_pct"] / 100.0, 0.0), 1.0), text=f"Cat 3: {route_stats['cat3_pct']:.1f}%")
         st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="tb-divider-label">Full comparison</div>', unsafe_allow_html=True)
     st.subheader("Top tire rankings")
     rows = []
     for idx, result in enumerate(ranked[:top_n], start=1):
