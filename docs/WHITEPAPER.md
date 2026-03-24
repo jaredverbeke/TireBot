@@ -37,14 +37,30 @@ For each tire, TireBot uses CRR values (or interpolation) on:
 - Cat 2 Gravel
 - Cat 3 Gravel
 
+### Optional: Bicycle Rolling Resistance (BRR) overrides
+
+If you use [Bicycle Rolling Resistance](https://www.bicyclerollingresistance.com/) Pro View, you can maintain a second file:
+
+- `data/brr_crr.csv`
+
+For any row, TireBot matches `tire_name` to the primary dataset (case-insensitive, normalized spaces) and **replaces** `road` / `cat1` / `cat2` / `cat3` CRR fields where you supply a value. You can also add **new tires** that appear only in this file (missing surfaces are filled by the same interpolation rules as the primary CSV).
+
+**Important:** Enter **CRR coefficients** in the same style as the Karrasch sheet, not raw watts, unless you have converted them. Column `smooth_pavement_crr` is accepted as an alias for `road_crr`. Optional columns `brr_review_url` and `notes` are for your records; they are not used in calculations. Compliance with BRR’s terms for any data you copy or export is your responsibility.
+
+See `data/BRR_IMPORT.txt` for column definitions and fill-in tips.
+
 ### 2.2 Route segment data
 
 Each event has a segment CSV in `Routes/<Event>/`.
 
 Supported fields:
 
-- `segment_start`, `segment_end` (km), `surface_type`, optional `selection_risk`, optional `technicality`
-- or `distance_km` + `race_position` format
+- `segment_start`, `segment_end` (**miles** along course), `surface_type`, optional `selection_risk`, optional `technicality`
+- or `distance_mi` (or legacy `distance_km` column storing **miles**) + `race_position`
+
+TireBot converts miles to kilometers internally for rolling-resistance distance weighting.
+
+GPX files use latitude/longitude (degrees). The app computes **horizontal track length in miles** from the trackpoint sequence for reference. GPX `<ele>` values are **meters** per the GPX spec; the UI shows elevation gain in feet and meters. Tire scoring still uses **segment CSV** mileage as the course model.
 
 Each segment contributes differently depending on:
 

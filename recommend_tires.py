@@ -14,6 +14,9 @@ SURFACE_TO_COL = {
     "cat3": "Cat 3 Gravel",
 }
 
+# Route segment CSVs use miles for segment_start / segment_end / distance columns.
+MI_TO_KM = 1.60934
+
 
 @dataclass
 class Segment:
@@ -41,6 +44,80 @@ def parse_float(value: str) -> Optional[float]:
         return float(raw)
     except ValueError:
         return None
+
+
+def normalize_tire_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.strip().lower())
+
+
+def load_brr_crr_csv(csv_path: Path) -> List[Dict[str, object]]:
+    """Optional overrides from Bicycle Rolling Resistance (manual Pro View export / copy).
+
+    Columns: tire_name, road_crr, cat1_crr, cat2_crr, cat3_crr, brr_review_url, notes
+    Values must be CRR coefficients (same units as the Karrasch CSV), not watts.
+    Alternate column smooth_pavement_crr maps to road if road_crr is empty.
+    """
+    if not csv_path.exists():
+        return []
+    rows_out: List[Dict[str, object]] = []
+    with csv_path.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = (row.get("tire_name") or "").strip()
+            if not name or name.startswith("#"):
+                continue
+            rec: Dict[str, object] = {
+                "tire_name": name,
+                "width_mm": parse_width_mm(name),
+            }
+            for surf in SURFACE_TO_COL.keys():
+                col = f"{surf}_crr"
+                rec[surf] = parse_float((row.get(col) or "").strip())
+            if rec["road"] is None:
+                rec["road"] = parse_float((row.get("smooth_pavement_crr") or "").strip())
+            if sum(1 for s in SURFACE_TO_COL if rec[s] is not None) == 0:
+                continue
+            rows_out.append(rec)
+    return rows_out
+
+
+def merge_brr_crr_into_tires(
+    base_tires: List[Dict[str, object]], brr_rows: List[Dict[str, object]]
+) -> List[Dict[str, object]]:
+    """Apply BRR CRR values on top of base dataset; add tires that exist only in BRR."""
+    out: List[Dict[str, object]] = []
+    for t in base_tires:
+        out.append(dict(t))
+    by_norm: Dict[str, int] = {normalize_tire_name(str(t["tire_name"])): i for i, t in enumerate(out)}
+
+    for br in brr_rows:
+        key = normalize_tire_name(str(br["tire_name"]))
+        if key in by_norm:
+            idx = by_norm[key]
+            for surf in SURFACE_TO_COL.keys():
+                if br.get(surf) is not None:
+                    out[idx][surf] = br[surf]
+        else:
+            new_tire: Dict[str, object] = {
+                "tire_name": br["tire_name"],
+                "width_mm": br.get("width_mm"),
+            }
+            if new_tire["width_mm"] is None:
+                new_tire["width_mm"] = parse_width_mm(str(br["tire_name"]))
+            for surf in SURFACE_TO_COL.keys():
+                new_tire[surf] = br.get(surf)
+            out.append(new_tire)
+            by_norm[key] = len(out) - 1
+    return out
+
+
+def load_tires_with_optional_brr(base_csv: Path, brr_csv: Optional[Path]) -> List[Dict[str, object]]:
+    tires = load_tire_data(base_csv)
+    if brr_csv is not None:
+        brr_rows = load_brr_crr_csv(brr_csv)
+        if brr_rows:
+            tires = merge_brr_crr_into_tires(tires, brr_rows)
+    return tires
 
 
 def parse_width_mm(tire_name: str) -> Optional[float]:
@@ -134,14 +211,17 @@ def load_segments(csv_path: Path) -> List[Segment]:
     if not rows:
         raise ValueError("No segments were loaded from route CSV.")
 
-    has_distance = "distance_km" in (rows[0].keys() if rows else {})
-    has_start_end = "segment_start" in (rows[0].keys() if rows else {}) and "segment_end" in (rows[0].keys() if rows else {})
+    row_keys = set(rows[0].keys() if rows else [])
+    has_distance_mi = "distance_mi" in row_keys
+    has_distance_km_col = "distance_km" in row_keys
+    has_distance = has_distance_mi or has_distance_km_col
+    has_start_end = "segment_start" in row_keys and "segment_end" in row_keys
 
-    total_distance_km = 0.0
+    total_route_mi = 0.0
     if has_start_end:
-        # Use the farthest endpoint as route length for race_position normalization.
-        total_distance_km = max(float((r.get("segment_end") or "0").strip() or "0") for r in rows)
-        if total_distance_km <= 0:
+        # segment_end is in miles; used only for race_position ratios.
+        total_route_mi = max(float((r.get("segment_end") or "0").strip() or "0") for r in rows)
+        if total_route_mi <= 0:
             raise ValueError("Invalid segment_end values; cannot determine route length.")
 
     for row in rows:
@@ -150,19 +230,23 @@ def load_segments(csv_path: Path) -> List[Segment]:
             raise ValueError(f"Invalid surface_type '{surface}'. Expected one of: {list(SURFACE_TO_COL.keys())}")
 
         if has_distance:
-            distance_km = float((row.get("distance_km") or "0").strip() or "0")
+            # Per-row distance in miles (prefer distance_mi; distance_km column name is legacy miles).
+            if has_distance_mi:
+                dist_mi = float((row.get("distance_mi") or "0").strip() or "0")
+            else:
+                dist_mi = float((row.get("distance_km") or "0").strip() or "0")
+            distance_km = dist_mi * MI_TO_KM
             race_pos = parse_or_default(row.get("race_position"), 0.5)
         elif has_start_end:
-            start_km = float((row.get("segment_start") or "0").strip() or "0")
-            end_km = float((row.get("segment_end") or "0").strip() or "0")
-            if end_km < start_km:
+            start_mi = float((row.get("segment_start") or "0").strip() or "0")
+            end_mi = float((row.get("segment_end") or "0").strip() or "0")
+            if end_mi < start_mi:
                 raise ValueError(f"segment_end < segment_start for segment '{row.get('segment_name', 'unnamed')}'.")
-            distance_km = end_km - start_km
-            # Midpoint of segment relative to total route length.
-            race_pos = ((start_km + end_km) / 2.0) / total_distance_km
+            distance_km = (end_mi - start_mi) * MI_TO_KM
+            race_pos = ((start_mi + end_mi) / 2.0) / total_route_mi
         else:
             raise ValueError(
-                "Route CSV must include either distance_km or segment_start and segment_end columns."
+                "Route CSV must include either distance_mi (or legacy distance_km in miles) or segment_start and segment_end in miles."
             )
 
         selection_risk = parse_or_default(row.get("selection_risk"), 1.0)
@@ -234,6 +318,11 @@ def main() -> None:
         help="Path to tire CRR CSV",
     )
     parser.add_argument(
+        "--brr-csv",
+        default="data/brr_crr.csv",
+        help="Optional BRR Pro View CRR overrides (set to non-existent path to skip)",
+    )
+    parser.add_argument(
         "--route-csv",
         default="Routes/example_route_segments.csv",
         help="Path to route segments CSV",
@@ -254,7 +343,8 @@ def main() -> None:
 
     tires_path = Path(args.tires_csv)
     route_path = Path(args.route_csv)
-    tires = load_tire_data(tires_path)
+    brr_path = Path(args.brr_csv)
+    tires = load_tires_with_optional_brr(tires_path, brr_path)
     segments = load_segments(route_path)
     scored = score_tires(tires, segments, args.early_boost)
 

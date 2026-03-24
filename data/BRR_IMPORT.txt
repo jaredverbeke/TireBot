@@ -1,0 +1,26 @@
+Bicycle Rolling Resistance (BRR) — data/brr_crr.csv
+====================================================
+
+I cannot log into your Pro View account. This file is a template for YOU to paste
+or export values from https://www.bicyclerollingresistance.com/ under your membership.
+
+Columns (header row required):
+  tire_name          — Use the same spelling as the Karrasch CSV when overriding,
+                       or any label for a tire that exists only here.
+  road_crr           — CRR on smooth pavement (optional)
+  cat1_crr           — CRR on Cat 1–style gravel (optional)
+  cat2_crr           — CRR on Cat 2–style gravel (optional)
+  cat3_crr           — CRR on Cat 3–style gravel (optional)
+  smooth_pavement_crr — Alias for road_crr if Pro View labels it that way
+  brr_review_url     — Optional link to the specific review page (not used in math)
+  notes              — Optional free text (not used in math)
+
+Rules:
+  • TireBot expects CRR numbers comparable to the Karrasch CSV. If Pro View shows
+    watts only, convert to CRR (or your pipeline’s equivalent) before pasting.
+  • Partial rows are OK: only filled surfaces override the base tire; the rest stay
+    from the Karrasch file or are interpolated.
+  • Matching is case-insensitive; extra spaces are normalized.
+  • Respect BRR’s terms for copying or redistributing their data.
+
+After editing, save as UTF-8 CSV and redeploy / restart the app.

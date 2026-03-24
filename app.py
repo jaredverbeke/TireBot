@@ -1,22 +1,34 @@
 #!/usr/bin/env python3
 import csv
+import math
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 
-from recommend_tires import Segment, load_segments, load_tire_data, score_tires
+from recommend_tires import Segment, load_segments, load_tires_with_optional_brr, score_tires
 
 
 ROOT = Path(__file__).parent
 ROUTES_DIR = ROOT / "Routes"
 TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.csv"
+BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
 PRESSURE_BASELINE_CSV = ROOT / "data" / "wolf_tooth_baseline.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
 WHITEPAPER_PATH = ROOT / "docs" / "WHITEPAPER.md"
 WHITEPAPER_PDF_PATH = ROOT / "docs" / "WHITEPAPER.pdf"
 WHITEPAPER_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.pdf"
+
+# Segment CSVs list distances in miles; summarize_route also reports miles.
+KM_TO_MI = 0.621371
+M_TO_FT = 3.28084
+EARTH_RADIUS_KM = 6371.0
+
+
+def km_to_mi(km: float) -> float:
+    return km * KM_TO_MI
+
 
 SPEED_OPTIONS = {
     "Pro (23+ mph avg)": "pro",
@@ -274,6 +286,7 @@ def estimate_tire_mass_grams(width_mm: float, tire_name: str, overrides: Dict[st
 
 
 def gpx_total_elevation_gain_m(gpx_path: Path) -> float:
+    # GPX 1.1: <ele> is meters above reference ellipsoid (WGS84).
     raw = gpx_path.read_text(encoding="utf-8", errors="ignore")
     elevations = [float(x) for x in re.findall(r"<ele>([-0-9.]+)</ele>", raw)]
     if len(elevations) < 2:
@@ -284,6 +297,25 @@ def gpx_total_elevation_gain_m(gpx_path: Path) -> float:
         if delta > 0:
             gain += delta
     return gain
+
+
+def gpx_track_length_mi(gpx_path: Path) -> float:
+    """Great-circle distance along `<trkpt>` sequence; reported in miles (not read from GPX tags)."""
+    raw = gpx_path.read_text(encoding="utf-8", errors="ignore")
+    pts = [(float(a), float(b)) for a, b in re.findall(r'<trkpt lat="([0-9\.-]+)" lon="([0-9\.-]+)">', raw)]
+    if len(pts) < 2:
+        return 0.0
+
+    def segment_km(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
+        lat1, lon1 = map(math.radians, p1)
+        lat2, lon2 = map(math.radians, p2)
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(min(1.0, h)))
+
+    total_km = sum(segment_km(pts[i - 1], pts[i]) for i in range(1, len(pts)))
+    return round(total_km * KM_TO_MI, 2)
 
 
 def estimate_tire_mass_penalty_watts(
@@ -351,6 +383,7 @@ def summarize_route(path: Path) -> Dict[str, float]:
     total_dist = sum(totals.values()) or 1.0
     return {
         "distance_km": total_dist,
+        "distance_mi": km_to_mi(total_dist),
         "road_pct": (totals["road"] / total_dist) * 100.0,
         "cat1_pct": (totals["cat1"] / total_dist) * 100.0,
         "cat2_pct": (totals["cat2"] / total_dist) * 100.0,
@@ -436,13 +469,15 @@ def main() -> None:
     speed_tier = SPEED_OPTIONS[speed_label]
 
     route_csv = events[event_label]
-    tires = load_tire_data(TIRES_CSV)
+    tires = load_tires_with_optional_brr(TIRES_CSV, BRR_CRR_CSV)
     segments = load_segments(route_csv)
     baseline_rows = load_pressure_baseline(PRESSURE_BASELINE_CSV)
     mass_overrides = load_tire_mass_overrides(TIRE_MASS_CSV)
     route_stats = summarize_route(route_csv)
     route_gpx = find_event_gpx(route_csv)
     total_elev_gain_m = gpx_total_elevation_gain_m(route_gpx) if route_gpx else 0.0
+    gpx_track_mi = gpx_track_length_mi(route_gpx) if route_gpx else 0.0
+    elev_gain_ft = total_elev_gain_m * M_TO_FT
     ranked_by_rr = score_tires(tires, segments, early_boost)
     if not ranked_by_rr:
         st.error("No tires could be scored. Check CSV data completeness.")
@@ -476,7 +511,7 @@ def main() -> None:
     winner_total_watts = winner["total_watts"]
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Route Distance", f"{route_stats['distance_km']:.1f} km")
+    m1.metric("Route Distance", f"{route_stats['distance_mi']:.1f} mi")
     m2.metric("Speed Assumption", f"{avg_speed_mph:.1f} mph")
     m3.metric("Fastest Tire", winner["tire_name"])
     m4.metric("Pressure (F / R)", f"{front_psi:.1f} / {rear_psi:.1f} psi")
@@ -494,7 +529,13 @@ def main() -> None:
             f"**Total resistance power:** `{winner_total_watts:.1f} W`"
         )
         st.markdown(
-            f'<p class="tb-muted">Source: {pressure_source}. Model inputs include route surface mix, early-race weighting {early_boost:.1f}, speed tier {speed_label}, average speed {avg_speed_mph:.1f} mph, rider weight {weight_kg:.1f} kg, and route elevation gain ({total_elev_gain_m:.0f} m from GPX when available).</p>',
+            f'<p class="tb-muted">Source: {pressure_source}. Route length from segments: {route_stats["distance_mi"]:.1f} mi. '
+            + (
+                f'GPX track (lat/lon): {gpx_track_mi:.1f} mi; elevation gain: {elev_gain_ft:,.0f} ft ({total_elev_gain_m:.0f} m, standard GPX &lt;ele&gt;). '
+                if route_gpx
+                else ""
+            )
+            + f"Surface mix, early-race weighting {early_boost:.1f}, speed tier {speed_label}, average speed {avg_speed_mph:.1f} mph, rider weight {weight_kg:.1f} kg. Segment CSV uses miles along course.</p>",
             unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)

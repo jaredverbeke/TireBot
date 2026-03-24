@@ -66,28 +66,34 @@ Default file:
 
 - `Routes/example_route_segments.csv`
 
+All route distances in segment CSVs are in **miles**. Internally the engine converts to kilometers for CRR math.
+
 Columns:
 
 - `segment_name` - free text
-- `distance_km` - segment length
+- `distance_mi` - segment length in miles (preferred)
 - `surface_type` - one of `road`, `cat1`, `cat2`, `cat3`
 - `technicality` - usually 0.8 to 1.8
 - `selection_risk` - race split potential, usually 0.8 to 1.8
 - `race_position` - 0.0 start to 1.0 finish
 
+Legacy: a column named `distance_km` is still read as **miles** (name is misleading; prefer `distance_mi`).
+
 Alternate route format also supported:
 
 - `segment_name`
-- `segment_start` (km from start)
-- `segment_end` (km from start)
+- `segment_start` (miles from start)
+- `segment_end` (miles from start)
 - `surface_type` (`road`, `cat1`, `cat2`, `cat3`)
 - optional `technicality` (defaults to 1.0)
 - optional `selection_risk` (defaults to 1.0)
 
 When using `segment_start` and `segment_end`, the script automatically computes:
 
-- `distance_km = segment_end - segment_start`
-- `race_position` from segment midpoint across route distance
+- segment length in miles, converts to km for scoring
+- `race_position` from segment midpoint across total route length in miles
+
+**GPX:** Files store lat/lon (and elevation in **meters** per GPX). The app can compute **track length in miles** from points for a sanity check vs your segment CSV; scoring still follows the CSV.
 
 ## Tune model behavior
 
