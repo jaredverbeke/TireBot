@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import csv
+import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 
@@ -12,6 +13,10 @@ ROOT = Path(__file__).parent
 ROUTES_DIR = ROOT / "Routes"
 TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.csv"
 PRESSURE_BASELINE_CSV = ROOT / "data" / "wolf_tooth_baseline.csv"
+TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
+WHITEPAPER_PATH = ROOT / "docs" / "WHITEPAPER.md"
+WHITEPAPER_PDF_PATH = ROOT / "docs" / "WHITEPAPER.pdf"
+WHITEPAPER_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.pdf"
 
 SPEED_OPTIONS = {
     "Pro (23+ mph avg)": "pro",
@@ -94,6 +99,14 @@ def discover_events(routes_dir: Path) -> Dict[str, Path]:
     return dict(sorted(events.items(), key=lambda x: x[0].lower()))
 
 
+def find_event_gpx(route_csv: Path) -> Optional[Path]:
+    parent = route_csv.parent
+    gpx_files = sorted(parent.glob("*.gpx"), key=lambda p: p.name.lower())
+    if not gpx_files:
+        return None
+    return gpx_files[0]
+
+
 def route_roughness_score(segments: List[Segment]) -> float:
     if not segments:
         return 0.0
@@ -147,6 +160,23 @@ def load_pressure_baseline(path: Path) -> List[Dict[str, float]]:
             except ValueError:
                 continue
     return rows
+
+
+def load_tire_mass_overrides(path: Path) -> Dict[str, float]:
+    if not path.exists():
+        return {}
+    values: Dict[str, float] = {}
+    with path.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = (row.get("tire_name") or "").strip()
+            if not name:
+                continue
+            try:
+                values[name] = float((row.get("weight_g") or "").strip())
+            except ValueError:
+                continue
+    return values
 
 
 def map_roughness_to_terrain_class(roughness: float) -> int:
@@ -224,6 +254,94 @@ def estimate_rr_watts(total_score: float, weighted_distance: float, speed_mph: f
     return round(watts, 1)
 
 
+def estimate_aero_penalty_watts(width_mm: float, speed_mph: float) -> float:
+    # Reference 40 mm as aero baseline; wider tires add drag.
+    baseline_width_mm = 40.0
+    speed_ref_mps = 8.94  # ~20 mph
+    speed_mps = speed_mph * 0.44704
+    width_delta = width_mm - baseline_width_mm
+    penalty = 0.35 * width_delta * ((speed_mps / speed_ref_mps) ** 3)
+    return round(penalty, 1)
+
+
+def estimate_tire_mass_grams(width_mm: float, tire_name: str, overrides: Dict[str, float]) -> float:
+    if tire_name in overrides:
+        return overrides[tire_name]
+    # Lightweight proxy if exact tire mass is unavailable.
+    # ~400 g at 40 mm, scaled by width.
+    est = 400.0 + (width_mm - 40.0) * 13.0
+    return max(300.0, min(950.0, est))
+
+
+def gpx_total_elevation_gain_m(gpx_path: Path) -> float:
+    raw = gpx_path.read_text(encoding="utf-8", errors="ignore")
+    elevations = [float(x) for x in re.findall(r"<ele>([-0-9.]+)</ele>", raw)]
+    if len(elevations) < 2:
+        return 0.0
+    gain = 0.0
+    for i in range(1, len(elevations)):
+        delta = elevations[i] - elevations[i - 1]
+        if delta > 0:
+            gain += delta
+    return gain
+
+
+def estimate_tire_mass_penalty_watts(
+    tire_mass_g: float,
+    route_distance_km: float,
+    total_elev_gain_m: float,
+    speed_mph: float,
+) -> float:
+    # Compare against a 450 g per-tire baseline (x2 tires).
+    baseline_pair_kg = 0.9
+    pair_mass_kg = (tire_mass_g * 2.0) / 1000.0
+    delta_mass_kg = pair_mass_kg - baseline_pair_kg
+    if abs(delta_mass_kg) < 1e-9:
+        return 0.0
+    speed_kmh = speed_mph * 1.60934
+    if speed_kmh <= 0.1:
+        return 0.0
+    total_time_s = (route_distance_km / speed_kmh) * 3600.0
+    if total_time_s <= 1.0:
+        return 0.0
+    watts = (delta_mass_kg * 9.80665 * total_elev_gain_m) / total_time_s
+    return round(watts, 2)
+
+
+def rank_by_fastest_total_watts(
+    ranked_by_rr: List,
+    weighted_distance: float,
+    route_distance_km: float,
+    total_elev_gain_m: float,
+    speed_mph: float,
+    weight_kg: float,
+    mass_overrides: Dict[str, float],
+) -> List[Dict[str, float]]:
+    rows: List[Dict[str, float]] = []
+    for r in ranked_by_rr:
+        width_mm = r.width_mm if r.width_mm is not None else 45.0
+        rr_watts = estimate_rr_watts(r.total_score, weighted_distance, speed_mph, weight_kg)
+        aero_penalty_watts = estimate_aero_penalty_watts(width_mm, speed_mph)
+        tire_mass_g = estimate_tire_mass_grams(width_mm, r.tire_name, mass_overrides)
+        mass_penalty_watts = estimate_tire_mass_penalty_watts(
+            tire_mass_g, route_distance_km, total_elev_gain_m, speed_mph
+        )
+        total_watts = round(rr_watts + aero_penalty_watts + mass_penalty_watts, 2)
+        rows.append(
+            {
+                "tire_name": r.tire_name,
+                "width_mm": width_mm,
+                "score": round(r.total_score, 4),
+                "rr_watts": rr_watts,
+                "aero_penalty_watts": aero_penalty_watts,
+                "tire_mass_g": round(tire_mass_g, 0),
+                "mass_penalty_watts": mass_penalty_watts,
+                "total_watts": total_watts,
+            }
+        )
+    return sorted(rows, key=lambda x: x["total_watts"])
+
+
 def summarize_route(path: Path) -> Dict[str, float]:
     # Small helper to show rough course composition to the rider.
     segments = load_segments(path)
@@ -257,6 +375,20 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
+    st.markdown('<div class="tb-card">', unsafe_allow_html=True)
+    st.markdown("### Methodology")
+    st.markdown(
+        f"[Read the TireBot whitepaper]({WHITEPAPER_URL}) to understand data sources, assumptions, and calculations."
+    )
+    if WHITEPAPER_PDF_PATH.exists():
+        whitepaper_pdf = WHITEPAPER_PDF_PATH.read_bytes()
+        st.download_button(
+            "Download Whitepaper (.pdf)",
+            data=whitepaper_pdf,
+            file_name="TireBot_Whitepaper.pdf",
+            mime="application/pdf",
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     events = discover_events(ROUTES_DIR)
     if not events:
@@ -278,6 +410,15 @@ def main() -> None:
 
         with st.expander("Advanced options", expanded=False):
             speed_label = st.radio("Speed tier", list(SPEED_OPTIONS.keys()), index=1)
+            default_speed_mph = avg_speed_mph_from_tier(SPEED_OPTIONS[speed_label])
+            avg_speed_mph = st.number_input(
+                "Average speed (mph)",
+                min_value=10.0,
+                max_value=35.0,
+                value=float(default_speed_mph),
+                step=0.1,
+                help="Used directly for aero penalty and rolling resistance power calculations.",
+            )
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
             top_n = st.slider("Top tire options", min_value=3, max_value=20, value=8, step=1)
 
@@ -298,13 +439,28 @@ def main() -> None:
     tires = load_tire_data(TIRES_CSV)
     segments = load_segments(route_csv)
     baseline_rows = load_pressure_baseline(PRESSURE_BASELINE_CSV)
-    ranked = score_tires(tires, segments, early_boost)
-    if not ranked:
+    mass_overrides = load_tire_mass_overrides(TIRE_MASS_CSV)
+    route_stats = summarize_route(route_csv)
+    route_gpx = find_event_gpx(route_csv)
+    total_elev_gain_m = gpx_total_elevation_gain_m(route_gpx) if route_gpx else 0.0
+    ranked_by_rr = score_tires(tires, segments, early_boost)
+    if not ranked_by_rr:
         st.error("No tires could be scored. Check CSV data completeness.")
         return
 
+    avg_speed_kph = mph_to_kph(avg_speed_mph)
+    weighted_distance = effective_weighted_distance(segments, early_boost)
+    ranked = rank_by_fastest_total_watts(
+        ranked_by_rr,
+        weighted_distance,
+        route_stats["distance_km"],
+        total_elev_gain_m,
+        avg_speed_mph,
+        weight_kg,
+        mass_overrides,
+    )
     winner = ranked[0]
-    winner_width = winner.width_mm if winner.width_mm is not None else 45.0
+    winner_width = winner["width_mm"]
     roughness = route_roughness_score(segments)
     terrain_class = map_roughness_to_terrain_class(roughness)
     if baseline_rows:
@@ -315,16 +471,14 @@ def main() -> None:
     else:
         front_psi, rear_psi = estimate_pressure(winner_width, weight_kg, speed_tier, roughness)
         pressure_source = "Heuristic fallback (add baseline CSV rows to switch)"
-    avg_speed_mph = avg_speed_mph_from_tier(speed_tier)
-    avg_speed_kph = mph_to_kph(avg_speed_mph)
-    weighted_distance = effective_weighted_distance(segments, early_boost)
-    winner_rr_watts = estimate_rr_watts(winner.total_score, weighted_distance, avg_speed_mph, weight_kg)
+    winner_rr_watts = winner["rr_watts"]
+    winner_aero_penalty = winner["aero_penalty_watts"]
+    winner_total_watts = winner["total_watts"]
 
-    route_stats = summarize_route(route_csv)
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Route Distance", f"{route_stats['distance_km']:.1f} km")
     m2.metric("Speed Assumption", f"{avg_speed_mph:.1f} mph")
-    m3.metric("Best Tire", winner.tire_name)
+    m3.metric("Fastest Tire", winner["tire_name"])
     m4.metric("Pressure (F / R)", f"{front_psi:.1f} / {rear_psi:.1f} psi")
 
     left, right = st.columns([1.35, 1])
@@ -332,12 +486,15 @@ def main() -> None:
         st.markdown('<div class="tb-card">', unsafe_allow_html=True)
         st.subheader("Recommendation")
         st.markdown(
-            f"**Tire choice:** `{winner.tire_name}`\n\n"
+            f"**Tire choice:** `{winner['tire_name']}`\n\n"
             f"**Pressure:** `{front_psi:.1f} psi front / {rear_psi:.1f} psi rear`\n\n"
-            f"**Rolling resistance:** `{winner_rr_watts:.1f} W`"
+            f"**Rolling resistance:** `{winner_rr_watts:.1f} W`\n\n"
+            f"**Aero width penalty:** `{winner_aero_penalty:+.1f} W`\n\n"
+            f"**Tire mass penalty:** `{winner['mass_penalty_watts']:+.2f} W` ({winner['tire_mass_g']:.0f} g each)\n\n"
+            f"**Total resistance power:** `{winner_total_watts:.1f} W`"
         )
         st.markdown(
-            f'<p class="tb-muted">Source: {pressure_source}. Model inputs include route surface mix, early-race weighting {early_boost:.1f}, speed tier {speed_label}, and rider weight {weight_kg:.1f} kg.</p>',
+            f'<p class="tb-muted">Source: {pressure_source}. Model inputs include route surface mix, early-race weighting {early_boost:.1f}, speed tier {speed_label}, average speed {avg_speed_mph:.1f} mph, rider weight {weight_kg:.1f} kg, and route elevation gain ({total_elev_gain_m:.0f} m from GPX when available).</p>',
             unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)
@@ -354,8 +511,8 @@ def main() -> None:
     st.subheader("Top tire rankings")
     rows = []
     for idx, result in enumerate(ranked[:top_n], start=1):
-        width_text = f"{result.width_mm:.1f}" if result.width_mm is not None else "n/a"
-        tire_width = result.width_mm if result.width_mm is not None else 45.0
+        width_text = f"{result['width_mm']:.1f}"
+        tire_width = result["width_mm"]
         if baseline_rows:
             f_psi, r_psi = estimate_pressure_from_baseline(
                 tire_width, weight_kg, terrain_class, baseline_rows
@@ -365,10 +522,14 @@ def main() -> None:
         rows.append(
             {
                 "Rank": idx,
-                "Tire": result.tire_name,
+                "Tire": result["tire_name"],
                 "Width (mm)": width_text,
-                "Score": round(result.total_score, 4),
-                "Rolling Resistance (W)": estimate_rr_watts(result.total_score, weighted_distance, avg_speed_mph, weight_kg),
+                "Route Score": result["score"],
+                "Rolling Resistance (W)": result["rr_watts"],
+                "Aero Penalty (W)": result["aero_penalty_watts"],
+                "Tire Mass (g)": result["tire_mass_g"],
+                "Mass Penalty (W)": result["mass_penalty_watts"],
+                "Total Resistance (W)": result["total_watts"],
                 "Front PSI": f_psi,
                 "Rear PSI": r_psi,
             }
@@ -379,8 +540,12 @@ def main() -> None:
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Score": st.column_config.NumberColumn(format="%.4f"),
+            "Route Score": st.column_config.NumberColumn(format="%.4f"),
             "Rolling Resistance (W)": st.column_config.NumberColumn(format="%.1f W"),
+            "Aero Penalty (W)": st.column_config.NumberColumn(format="%+.1f W"),
+            "Tire Mass (g)": st.column_config.NumberColumn(format="%.0f g"),
+            "Mass Penalty (W)": st.column_config.NumberColumn(format="%+.2f W"),
+            "Total Resistance (W)": st.column_config.NumberColumn(format="%.1f W"),
             "Front PSI": st.column_config.NumberColumn(format="%.1f"),
             "Rear PSI": st.column_config.NumberColumn(format="%.1f"),
         },

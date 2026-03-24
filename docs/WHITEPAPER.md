@@ -1,0 +1,204 @@
+# TireBot Whitepaper
+
+## 1) What TireBot does
+
+TireBot recommends the fastest tire and pressure setup for a specific gravel event route.
+
+The app combines:
+
+- route surface segmentation (`road`, `cat1`, `cat2`, `cat3`)
+- rolling resistance (CRR) test data by tire and surface
+- rider inputs (weight, average speed)
+- race dynamics weighting (extra emphasis on early race sectors)
+- aerodynamic width effects
+- optional tire-mass effects over route climbing
+
+The output is a practical race-day recommendation:
+
+- best tire
+- front/rear pressure
+- top ranked alternatives
+- estimated power breakdown
+
+---
+
+## 2) Data inputs
+
+### 2.1 Tire rolling resistance data
+
+Source file in this project:
+
+- `Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.csv`
+
+For each tire, TireBot uses CRR values (or interpolation) on:
+
+- Smooth Pavement
+- Cat 1 Gravel
+- Cat 2 Gravel
+- Cat 3 Gravel
+
+### 2.2 Route segment data
+
+Each event has a segment CSV in `Routes/<Event>/`.
+
+Supported fields:
+
+- `segment_start`, `segment_end` (km), `surface_type`, optional `selection_risk`, optional `technicality`
+- or `distance_km` + `race_position` format
+
+Each segment contributes differently depending on:
+
+- distance
+- surface type
+- early-race weighting
+- optional technicality / selection risk multipliers
+
+### 2.3 Rider and race inputs
+
+From app inputs:
+
+- rider weight (kg)
+- average speed (mph)
+- speed tier (used for defaults)
+- early-race weighting multiplier
+
+### 2.4 Pressure baseline data (optional)
+
+File:
+
+- `data/wolf_tooth_baseline.csv`
+
+If this file has rows, TireBot uses it for pressure lookup/interpolation.
+If empty, app falls back to heuristic pressure estimation.
+
+### 2.5 Tire mass data (optional)
+
+File:
+
+- `data/tire_mass_overrides.csv`
+
+If available, exact tire mass is used for mass-penalty calculations.
+If not, TireBot uses a width-based mass estimate.
+
+---
+
+## 3) Core calculations
+
+## 3.1 Route-weighted rolling score
+
+For each segment:
+
+1. Determine segment CRR for that tire and surface.
+2. Apply weighting:
+   - early-race phase weighting
+   - technicality multiplier
+   - selection-risk multiplier
+3. Multiply by segment distance.
+
+Tire route score:
+
+- `route_score = sum(segment_crr * distance * weight)`
+
+Lower is better.
+
+## 3.2 Rolling resistance power (watts)
+
+TireBot converts route score into estimated rolling power at the selected speed and weight:
+
+- derive effective route CRR
+- apply `P_rr = Crr * m * g * v`
+
+Where:
+
+- `m` is rider + bike system mass estimate
+- `v` is average speed
+
+## 3.3 Aero width penalty (watts)
+
+TireBot adds an aero penalty based on tire width relative to a baseline width.
+The penalty scales with speed (approximately cubic speed behavior).
+
+Result:
+
+- narrower tires generally get less aero penalty
+- wider tires can gain rolling advantages on rough surfaces but may lose aero watts on faster terrain
+
+## 3.4 Tire mass penalty (watts)
+
+TireBot estimates energy required to lift tire mass over total route elevation gain, then converts that energy to average watts over estimated race time.
+
+This term is usually small, but can matter for close calls on hillier routes.
+
+## 3.5 Total resistance ranking
+
+Final ranking target:
+
+- `total_watts = rolling_watts + aero_penalty_watts + mass_penalty_watts`
+
+Fastest tire = lowest total watts.
+
+---
+
+## 4) Pressure recommendation logic
+
+TireBot pressure path:
+
+1. If pressure baseline data exists (`wolf_tooth_baseline.csv`):
+   - map route roughness to terrain class
+   - interpolate nearest pressure points by:
+     - terrain class
+     - rider weight
+     - tire width
+2. Otherwise:
+   - use a fallback heuristic model with width, rider weight, speed, and route roughness
+
+Pressures are presented as race-day starting points, not absolute final values.
+
+---
+
+## 5) Why early-race weighting matters
+
+In many gravel races, the first quarter is decisive.
+If a setup causes you to lose the front group early, later gains may not matter.
+
+TireBot allows higher weighting for early segments to reflect real race dynamics.
+
+---
+
+## 6) Practical interpretation
+
+Use the recommendation as a decision aid, then validate on-bike:
+
+- compare top 3 tires, not only #1
+- check sensitivity to average speed and early weighting
+- verify pressure on real terrain and weather
+
+Small differences (< 1-2 W total) are often within modeling noise and should be treated as effectively tied.
+
+---
+
+## 7) Current limitations
+
+- CRR coverage can be incomplete for some tires/surfaces (interpolation required)
+- Surface categories are simplified into four classes
+- Aero model is a practical proxy, not full CFD
+- Tire mass may be estimated if measured data is missing
+- Pressure baseline quality depends on data coverage in CSV
+
+---
+
+## 8) Recommended next improvements
+
+- add measured tire mass for all key tires
+- expand pressure baseline rows for better interpolation coverage
+- include wind assumptions in aero model
+- include temperature/wet-condition modifiers
+- add confidence intervals around rankings
+
+---
+
+## 9) Safety and responsibility
+
+Always stay within tire and rim manufacturer pressure limits.
+TireBot recommendations are informational and should be validated against equipment specs, rider handling preferences, and race-day conditions.
+
