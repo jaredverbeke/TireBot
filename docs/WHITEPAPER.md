@@ -10,7 +10,7 @@ The app combines:
 - rolling resistance (CRR) test data by tire and surface
 - rider inputs (weight, average speed)
 - race dynamics weighting (extra emphasis on early race sectors)
-- aerodynamic width effects
+- aerodynamic width effects (optionally scaled by GPX grade so steep downhills and steep climbs contribute less to the aero term)
 - optional tire-mass effects over route climbing
 
 The output is a practical race-day recommendation:
@@ -62,6 +62,8 @@ TireBot converts miles to kilometers internally for rolling-resistance distance 
 
 GPX files use latitude/longitude (degrees). The app computes **horizontal track length in miles** from the trackpoint sequence for reference. GPX `<ele>` values are **meters** per the GPX spec; the UI shows elevation gain in feet and meters. Tire scoring still uses **segment CSV** mileage as the course model.
 
+When a GPX file is present **and** trackpoints include elevation, TireBot also uses GPX to classify **which horizontal distance counts toward the aero width penalty** (see section 3.3): steep downhills and steep climbs are excluded from that distance fraction. Elevation is lightly smoothed along the track before grade is computed, to reduce GPS noise.
+
 Each segment contributes differently depending on:
 
 - distance
@@ -74,9 +76,10 @@ Each segment contributes differently depending on:
 From app inputs:
 
 - rider weight (kg)
-- average speed (mph)
-- speed tier (used for defaults)
+- average speed (mph), on a single slider (used for rolling power everywhere, and as the speed in the aero formula where GPX-based distance weighting applies)
 - early-race weighting multiplier
+
+If Wolf Tooth baseline pressure data is absent, a coarse **speed tier** is inferred only from this average speed (≥23 mph → “pro”, &lt;18 mph → “ride”, otherwise “amateur”) for the heuristic pressure fallback—not for rolling or aero math.
 
 ### 2.4 Pressure baseline data (optional)
 
@@ -131,13 +134,45 @@ Where:
 
 ## 3.3 Aero width penalty (watts)
 
-TireBot adds an aero penalty based on tire width relative to a baseline width.
-The penalty scales with speed (approximately cubic speed behavior).
+TireBot adds an **aero width penalty** based on tire width relative to a baseline width, with magnitude that scales approximately with **speed cubed** (same functional form as before).
+
+**Instantaneous-style penalty at the selected average speed**
+
+For a given tire width `w` (mm), baseline width 40 mm, and rider-chosen average speed `v` (mph), TireBot computes a width penalty in watts using the app’s existing proxy (coefficient and reference speed are implementation details in `app.py`). Conceptually:
+
+- narrower tires → lower penalty at the same speed
+- wider tires → more aero penalty where this model applies
+
+**Where on the course the penalty applies (GPX grade filter)**
+
+Rolling resistance still uses the segment CSV and the same average speed over the **whole** course model.
+
+For **aero only**, TireBot optionally scales that penalty by a **distance fraction** derived from the event GPX (when the file exists next to the route and trackpoints include `<ele>`):
+
+1. Parse the GPX track as a sequence of points with latitude, longitude, and elevation (meters).
+2. Apply a short **moving average** to the elevation series (e.g. five points) to damp GPS jitter before computing grade.
+3. For each consecutive pair of points, compute **horizontal distance** (great-circle, km) and **grade** = Δelevation (m) / horizontal distance (m).
+4. Count horizontal distance as **aero-eligible** only if grade is in a moderate band:
+   - **Exclude** segments with grade **steeper downhill** than about **−1.2%** (coasting / aero not representative of pedaling).
+   - **Exclude** segments with grade **steeper uphill** than about **+7%** (“large climb” where speed is low and this simple aero term is de-emphasized).
+5. Let `f = (aero_eligible_horizontal_km) / (total_GPX_horizontal_km)`. If GPX or elevation is missing, **`f = 1`** (legacy behavior: aero applies as if the whole course were in the eligible band).
+
+**Race-average aero contribution**
+
+The **reported aero penalty** (watts) is:
+
+`aero_penalty_watts = P_aero(width, v) * f`
+
+So the rider’s **average speed slider** still sets how strong the aero proxy is at a given width; **`f`** reduces that term when much of the GPX track is steep descent or steep climbing. For context, the UI may express **`f`** as an approximate **effective aero mileage** = segment-course miles × **`f`** (segment CSV remains the distance authority for rolling resistance and overall route stats).
+
+**Fallbacks**
+
+- No GPX, unparseable track, or no per-point elevation → **`f = 1`**, same aero model as pre-GPX-filter behavior.
 
 Result:
 
 - narrower tires generally get less aero penalty
-- wider tires can gain rolling advantages on rough surfaces but may lose aero watts on faster terrain
+- wider tires can gain rolling advantages on rough surfaces but may lose more aero watts on the **eligible** portions of the course at the chosen average speed
 
 ## 3.4 Tire mass penalty (watts)
 
@@ -197,7 +232,7 @@ Small differences (< 1-2 W total) are often within modeling noise and should be 
 
 - CRR coverage can be incomplete for some tires/surfaces (interpolation required)
 - Surface categories are simplified into four classes
-- Aero model is a practical proxy, not full CFD
+- Aero model is a practical proxy, not full CFD; GPX grade thresholds for excluding downhills/climbs are heuristics, not physics
 - Tire mass may be estimated if measured data is missing
 - Pressure baseline quality depends on data coverage in CSV
 

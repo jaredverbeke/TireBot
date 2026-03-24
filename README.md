@@ -32,7 +32,7 @@ streamlit run app.py
 The app lets you:
 
 - pick an event from `Routes/`; if yours is missing, the app explains how to email a segment CSV **and GPX** and includes a downloadable CSV template
-- choose speed tier (`Pro`, `Amateur race`, `Ride`)
+- set average speed (mph) on a slider
 - enter rider weight in kg
 - get tire recommendation and estimated front/rear pressure
 

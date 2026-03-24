@@ -29,16 +29,13 @@ KM_TO_MI = 0.621371
 M_TO_FT = 3.28084
 EARTH_RADIUS_KM = 6371.0
 
+# GPX grade gates for aero: exclude steep descents (coasting) and steep climbs (low speed).
+AERO_EXCLUDE_DOWNHILL_GRADE = -0.012  # below ~-1.2% net → treat as downhill for aero
+AERO_EXCLUDE_STEEP_CLIMB_GRADE = 0.07  # above ~7% → "large climb", aero neglected
+
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
-
-
-SPEED_OPTIONS = {
-    "Pro (23+ mph avg)": "pro",
-    "Amateur race (18-23 mph avg)": "amateur",
-    "Ride (under 18 mph avg)": "ride",
-}
 
 
 def inject_styles() -> None:
@@ -304,10 +301,6 @@ def route_roughness_score(segments: List[Segment]) -> float:
     return weighted / total_distance
 
 
-def mph_to_kph(speed_mph: float) -> float:
-    return speed_mph * 1.60934
-
-
 def estimate_pressure(width_mm: float, weight_kg: float, speed_tier: str, roughness: float) -> Tuple[float, float]:
     speed_adj = {"pro": 2.0, "amateur": 0.0, "ride": -2.0}[speed_tier]
     weight_adj = (weight_kg - 75.0) * 0.12
@@ -410,8 +403,13 @@ def estimate_pressure_from_baseline(
     return round(front, 1), round(rear, 1)
 
 
-def avg_speed_mph_from_tier(speed_tier: str) -> float:
-    return {"pro": 24.0, "amateur": 20.0, "ride": 16.0}[speed_tier]
+def speed_tier_from_avg_mph(mph: float) -> str:
+    """Legacy coarse tiers for heuristic pressure fallback when no baseline CSV."""
+    if mph >= 23.0:
+        return "pro"
+    if mph < 18.0:
+        return "ride"
+    return "amateur"
 
 
 def phase_weight(race_position: float, early_boost: float) -> float:
@@ -459,6 +457,77 @@ def estimate_tire_mass_grams(width_mm: float, tire_name: str, overrides: Dict[st
     return max(300.0, min(950.0, est))
 
 
+def haversine_km(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
+    lat1, lon1 = map(math.radians, p1)
+    lat2, lon2 = map(math.radians, p2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(min(1.0, h)))
+
+
+def gpx_parse_track_points(gpx_path: Path) -> List[Tuple[float, float, Optional[float]]]:
+    raw = gpx_path.read_text(encoding="utf-8", errors="ignore")
+    pts: List[Tuple[float, float, Optional[float]]] = []
+    for m in re.finditer(
+        r'<trkpt\s+lat="([0-9\.-]+)"\s+lon="([0-9\.-]+)"[^>]*>(.*?)</trkpt>',
+        raw,
+        re.DOTALL | re.IGNORECASE,
+    ):
+        inner = m.group(3)
+        em = re.search(r"<ele>([-0-9.]+)</ele>", inner, re.IGNORECASE)
+        ele = float(em.group(1)) if em else None
+        pts.append((float(m.group(1)), float(m.group(2)), ele))
+    return pts
+
+
+def _smooth_1d(values: List[float], window: int) -> List[float]:
+    if len(values) < window or window < 3:
+        return list(values)
+    half = window // 2
+    out: List[float] = []
+    for i in range(len(values)):
+        lo = max(0, i - half)
+        hi = min(len(values), i + half + 1)
+        out.append(sum(values[lo:hi]) / (hi - lo))
+    return out
+
+
+def gpx_aero_eligible_breakdown(gpx_path: Optional[Path]) -> Tuple[float, float, float]:
+    """Horizontal km where aero applies vs total GPX horizontal km.
+
+    Aero-eligible segments are not steep downhills (coasting) nor steep climbs.
+    Returns ``(d_aero_km, d_total_km, fraction)``. If GPX/elevation missing, ``(0, 0, 1.0)``.
+    """
+    if gpx_path is None or not gpx_path.exists():
+        return 0.0, 0.0, 1.0
+    pts = gpx_parse_track_points(gpx_path)
+    if len(pts) < 2:
+        return 0.0, 0.0, 1.0
+    if any(p[2] is None for p in pts):
+        return 0.0, 0.0, 1.0
+    lats = [p[0] for p in pts]
+    lons = [p[1] for p in pts]
+    eles = [float(p[2]) for p in pts]
+    win = min(5, len(eles))
+    if win >= 3:
+        eles = _smooth_1d(eles, win)
+    d_aero = 0.0
+    d_total = 0.0
+    for i in range(1, len(pts)):
+        h_km = haversine_km((lats[i - 1], lons[i - 1]), (lats[i], lons[i]))
+        if h_km < 1e-9:
+            continue
+        dz_m = eles[i] - eles[i - 1]
+        grade = dz_m / (h_km * 1000.0)
+        d_total += h_km
+        if AERO_EXCLUDE_DOWNHILL_GRADE <= grade <= AERO_EXCLUDE_STEEP_CLIMB_GRADE:
+            d_aero += h_km
+    if d_total <= 0:
+        return 0.0, 0.0, 1.0
+    return d_aero, d_total, d_aero / d_total
+
+
 def gpx_total_elevation_gain_m(gpx_path: Path) -> float:
     # GPX 1.1: <ele> is meters above reference ellipsoid (WGS84).
     raw = gpx_path.read_text(encoding="utf-8", errors="ignore")
@@ -479,16 +548,7 @@ def gpx_track_length_mi(gpx_path: Path) -> float:
     pts = [(float(a), float(b)) for a, b in re.findall(r'<trkpt lat="([0-9\.-]+)" lon="([0-9\.-]+)">', raw)]
     if len(pts) < 2:
         return 0.0
-
-    def segment_km(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
-        lat1, lon1 = map(math.radians, p1)
-        lat2, lon2 = map(math.radians, p2)
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(min(1.0, h)))
-
-    total_km = sum(segment_km(pts[i - 1], pts[i]) for i in range(1, len(pts)))
+    total_km = sum(haversine_km(pts[i - 1], pts[i]) for i in range(1, len(pts)))
     return round(total_km * KM_TO_MI, 2)
 
 
@@ -522,12 +582,14 @@ def rank_by_fastest_total_watts(
     speed_mph: float,
     weight_kg: float,
     mass_overrides: Dict[str, float],
+    aero_distance_fraction: float = 1.0,
 ) -> List[Dict[str, float]]:
+    frac = max(0.0, min(1.0, aero_distance_fraction))
     rows: List[Dict[str, float]] = []
     for r in ranked_by_rr:
         width_mm = r.width_mm if r.width_mm is not None else 45.0
         rr_watts = estimate_rr_watts(r.total_score, weighted_distance, speed_mph, weight_kg)
-        aero_penalty_watts = estimate_aero_penalty_watts(width_mm, speed_mph)
+        aero_penalty_watts = round(estimate_aero_penalty_watts(width_mm, speed_mph) * frac, 1)
         tire_mass_g = estimate_tire_mass_grams(width_mm, r.tire_name, mass_overrides)
         mass_penalty_watts = estimate_tire_mass_penalty_watts(
             tire_mass_g, route_distance_km, total_elev_gain_m, speed_mph
@@ -689,17 +751,17 @@ def main() -> None:
         )
         weight_kg = i2.number_input("Rider weight (kg)", min_value=45.0, max_value=130.0, value=75.0, step=0.5)
 
+        avg_speed_mph = st.slider(
+            "Average speed (mph)",
+            min_value=10.0,
+            max_value=35.0,
+            value=20.0,
+            step=0.5,
+            help="Rolling resistance uses this speed everywhere. Aero penalty uses this speed scaled by GPX: only "
+            "distance that is not a steep downhill or steep climb counts (see results footnote).",
+        )
+
         with st.expander("Advanced options", expanded=False):
-            speed_label = st.radio("Speed tier", list(SPEED_OPTIONS.keys()), index=1)
-            default_speed_mph = avg_speed_mph_from_tier(SPEED_OPTIONS[speed_label])
-            avg_speed_mph = st.number_input(
-                "Average speed (mph)",
-                min_value=10.0,
-                max_value=35.0,
-                value=float(default_speed_mph),
-                step=0.1,
-                help="Used directly for aero penalty and rolling resistance power calculations.",
-            )
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
             top_n = st.slider("Top tire options", min_value=3, max_value=20, value=8, step=1)
 
@@ -709,7 +771,7 @@ def main() -> None:
     route_context_str = event_label
 
     if not submitted:
-        st.info("Choose a route and rider weight, then run **Generate recommendation**.")
+        st.info("Choose a route, rider weight, and average speed, then run **Generate recommendation**.")
         render_feedback_footer(route_context_str)
         return
 
@@ -718,7 +780,7 @@ def main() -> None:
         render_feedback_footer(route_context_str)
         return
 
-    speed_tier = SPEED_OPTIONS[speed_label]
+    speed_tier = speed_tier_from_avg_mph(avg_speed_mph)
 
     route_csv = events[event_label]
     tires = load_tires_with_optional_brr(TIRES_CSV, BRR_CRR_CSV)
@@ -729,6 +791,24 @@ def main() -> None:
     route_gpx = find_event_gpx(route_csv)
     total_elev_gain_m = gpx_total_elevation_gain_m(route_gpx) if route_gpx else 0.0
     gpx_track_mi = gpx_track_length_mi(route_gpx) if route_gpx else 0.0
+    _d_aero_km, _d_gpx_km, aero_distance_fraction = gpx_aero_eligible_breakdown(route_gpx)
+    aero_course_mi = route_stats["distance_mi"] * aero_distance_fraction
+    if not route_gpx:
+        aero_footnote_html = (
+            "<strong>Aero penalty</strong> uses the average speed slider over the full route (no GPX for this event). "
+        )
+    elif _d_gpx_km <= 0:
+        aero_footnote_html = (
+            "<strong>Aero penalty</strong> uses the average speed slider over the full route "
+            "(GPX track has no elevation on points, or track is too short to analyze). "
+        )
+    else:
+        aero_footnote_html = (
+            f"<strong>Aero penalty</strong> uses {avg_speed_mph:.1f} mph, scaled by GPX distance where grade is between "
+            f"about {abs(AERO_EXCLUDE_DOWNHILL_GRADE) * 100:.1f}% descent and {AERO_EXCLUDE_STEEP_CLIMB_GRADE * 100:.0f}% climb "
+            f"(steeper downhills and steeper climbs excluded). "
+            f"That is ~{aero_distance_fraction * 100:.0f}% of segment course miles (~{aero_course_mi:.1f} mi of {route_stats['distance_mi']:.1f} mi). "
+        )
     elev_gain_ft = total_elev_gain_m * M_TO_FT
     ranked_by_rr = score_tires(tires, segments, early_boost)
     if not ranked_by_rr:
@@ -736,7 +816,6 @@ def main() -> None:
         render_feedback_footer(route_context_str)
         return
 
-    avg_speed_kph = mph_to_kph(avg_speed_mph)
     weighted_distance = effective_weighted_distance(segments, early_boost)
     ranked = rank_by_fastest_total_watts(
         ranked_by_rr,
@@ -746,6 +825,7 @@ def main() -> None:
         avg_speed_mph,
         weight_kg,
         mass_overrides,
+        aero_distance_fraction=aero_distance_fraction,
     )
     winner = ranked[0]
     winner_width = winner["width_mm"]
@@ -766,7 +846,7 @@ def main() -> None:
     st.markdown('<div class="tb-divider-label">Snapshot</div>', unsafe_allow_html=True)
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Route Distance", f"{route_stats['distance_mi']:.1f} mi")
-    m2.metric("Speed Assumption", f"{avg_speed_mph:.1f} mph")
+    m2.metric("Avg speed", f"{avg_speed_mph:.1f} mph")
     m3.metric("Fastest Tire", winner["tire_name"])
     m4.metric("Pressure (F / R)", f"{front_psi:.1f} / {rear_psi:.1f} psi")
 
@@ -796,7 +876,8 @@ def main() -> None:
                 if route_gpx
                 else ""
             )
-            + f"Surface mix, early-race weighting {early_boost:.1f}, speed tier {speed_label}, average speed {avg_speed_mph:.1f} mph, rider weight {weight_kg:.1f} kg. Segment CSV uses miles along course.</p>",
+            + aero_footnote_html
+            + f"Surface mix, early-race weighting {early_boost:.1f}, average speed {avg_speed_mph:.1f} mph, rider weight {weight_kg:.1f} kg. Segment CSV uses miles along course.</p>",
             unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)
