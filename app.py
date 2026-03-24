@@ -18,9 +18,10 @@ TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.
 BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
 PRESSURE_BASELINE_CSV = ROOT / "data" / "wolf_tooth_baseline.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
-WHITEPAPER_PATH = ROOT / "docs" / "WHITEPAPER.md"
-WHITEPAPER_PDF_PATH = ROOT / "docs" / "WHITEPAPER.pdf"
-WHITEPAPER_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.pdf"
+# Rendered Markdown in the browser (no PDF plugin needed).
+WHITEPAPER_ONLINE_GITHUB_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.md"
+# Optional: enable GitHub Pages from /docs on main — see README.
+WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
 
 FEEDBACK_EMAIL = "jaredverbeke@gmail.com"
 
@@ -695,16 +696,10 @@ def main() -> None:
     st.markdown('<p class="tb-section-label">Science &amp; assumptions</p>', unsafe_allow_html=True)
     st.markdown("### Methodology")
     st.markdown(
-        f"[Read the TireBot whitepaper]({WHITEPAPER_URL}) for data sources, assumptions, and calculations."
+        f"**[Read the whitepaper online]({WHITEPAPER_ONLINE_GITHUB_URL})** — opens in your browser (GitHub-rendered Markdown). "
+        f"Optional reader: **[tirebot reader]({WHITEPAPER_ONLINE_PAGES_URL})** (enable GitHub Pages from `/docs` if that link 404s). "
+        "Data sources, assumptions, and calculations."
     )
-    if WHITEPAPER_PDF_PATH.exists():
-        whitepaper_pdf = WHITEPAPER_PDF_PATH.read_bytes()
-        st.download_button(
-            "Download whitepaper (PDF)",
-            data=whitepaper_pdf,
-            file_name="TireBot_Whitepaper.pdf",
-            mime="application/pdf",
-        )
     st.markdown("</div>", unsafe_allow_html=True)
 
     events = discover_events(ROUTES_DIR)

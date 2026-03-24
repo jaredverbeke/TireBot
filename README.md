@@ -29,6 +29,11 @@ Run the app:
 streamlit run app.py
 ```
 
+## Whitepaper (read online)
+
+- **GitHub (always works):** [docs/WHITEPAPER.md in the browser](https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.md)
+- **Reader site:** [jaredverbeke.github.io/TireBot](https://jaredverbeke.github.io/TireBot/) — static page in `docs/` that loads the Markdown. Turn it on once: **Settings → Pages → Build and deployment → Deploy from branch `main` / folder `/docs`**, then wait for the green check.
+
 The app lets you:
 
 - pick an event from `Routes/`; if yours is missing, the app explains how to email a segment CSV **and GPX** and includes a downloadable CSV template
