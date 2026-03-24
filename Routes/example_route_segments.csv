@@ -1,0 +1,9 @@
+segment_name,distance_km,surface_type,technicality,selection_risk,race_position
+Rollout road,8,road,0.8,0.9,0.05
+Early split sector,10,cat1,1.3,1.4,0.12
+Punchy rough climb,6,cat2,1.5,1.6,0.20
+Fast smooth section,12,road,0.9,1.0,0.32
+Washboards and corners,9,cat2,1.4,1.3,0.45
+Midrace speed gravel,11,cat1,1.1,1.0,0.58
+Deep loose segment,7,cat3,1.6,1.4,0.72
+Final pavement run-in,15,road,0.8,0.9,0.92

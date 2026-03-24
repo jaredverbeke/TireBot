@@ -1,0 +1,17 @@
+segment_name,segment_start,segment_end,surface_type,selection_risk
+road 1,0,7.5,road,0
+gravel 1,7.5,8.5,cat1,0
+road 2,8.5,11.5,road,0
+gravel 2,11.5,13,cat1,0
+road 3,13,17.5,road,0
+gravel 3,17.5,18,cat1,0
+road 4,18,19.6,road,0
+gravel 4,19.6,22.3,cat3,0
+road 5,22.3,30,road,0
+gravel 5,30,32,cat1,
+road 6,32,35,road,
+gravel 6,35,37.5,cat1,
+road 7,37.5,41,road,
+gravel 7,41,42.5,cat1,
+road 8,42.5,53,road,
+gravel 8,53,62,cat2,
