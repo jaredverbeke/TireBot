@@ -2,6 +2,7 @@
 import csv
 import math
 import re
+import urllib.parse
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -19,6 +20,8 @@ TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
 WHITEPAPER_PATH = ROOT / "docs" / "WHITEPAPER.md"
 WHITEPAPER_PDF_PATH = ROOT / "docs" / "WHITEPAPER.pdf"
 WHITEPAPER_URL = "https://github.com/jaredverbeke/TireBot/blob/main/docs/WHITEPAPER.pdf"
+
+FEEDBACK_EMAIL = "jaredverbeke@gmail.com"
 
 # Segment CSVs list distances in miles; summarize_route also reports miles.
 KM_TO_MI = 0.621371
@@ -102,6 +105,17 @@ def discover_events(routes_dir: Path) -> Dict[str, Path]:
             if segment_files:
                 # Use folder name for display, first matching segments CSV for data.
                 events[child.name] = segment_files[0]
+            else:
+                # Nested routes, e.g. Routes/User uploads/<route_name>/route_segments.csv
+                for sub in sorted(child.iterdir(), key=lambda p: p.name.lower()):
+                    if not sub.is_dir():
+                        continue
+                    nested = sorted(
+                        [p for p in sub.glob("*.csv") if "segment" in p.name.lower()],
+                        key=lambda p: p.name.lower(),
+                    )
+                    if nested:
+                        events[f"{child.name} / {sub.name}"] = nested[0]
 
     # Fallback: if no folder-based events are found, support top-level segment CSVs.
     if not events:
@@ -113,10 +127,28 @@ def discover_events(routes_dir: Path) -> Dict[str, Path]:
 
 def find_event_gpx(route_csv: Path) -> Optional[Path]:
     parent = route_csv.parent
+    preferred = parent / "route.gpx"
+    if preferred.exists():
+        return preferred
     gpx_files = sorted(parent.glob("*.gpx"), key=lambda p: p.name.lower())
     if not gpx_files:
         return None
     return gpx_files[0]
+
+
+def route_submission_mailto() -> str:
+    subject = "TireBot route — segment CSV + GPX"
+    body = (
+        "Hi,\n\n"
+        "Please add this race to TireBot. Attached:\n"
+        "- Segment CSV (filename must contain \"segment\", distances in miles)\n"
+        "- GPX (required — elevation and track length)\n\n"
+        "Event name:\n\n"
+        "Thanks!\n"
+    )
+    q_sub = urllib.parse.quote(subject)
+    q_body = urllib.parse.quote(body)
+    return f"mailto:{FEEDBACK_EMAIL}?subject={q_sub}&body={q_body}"
 
 
 def route_roughness_score(segments: List[Segment]) -> float:
@@ -374,6 +406,51 @@ def rank_by_fastest_total_watts(
     return sorted(rows, key=lambda x: x["total_watts"])
 
 
+def render_feedback_footer(route_label: Optional[str] = None) -> None:
+    """Opens the visitor's email client (mailto:). No server-side email on Streamlit Cloud."""
+    st.divider()
+    st.markdown('<div class="tb-card">', unsafe_allow_html=True)
+    st.subheader("Feedback")
+    st.caption(
+        "Opens your email app to send to the TireBot maintainer. Nothing is transmitted from this server."
+    )
+    ctx = route_label if route_label and route_label != "Pick a Route/Event" else "Not specified"
+
+    with st.form("tirebot_feedback_form", clear_on_submit=False):
+        message = st.text_area(
+            "Your message",
+            placeholder="Bugs, feature ideas, or data corrections…",
+            height=120,
+            max_chars=4000,
+        )
+        send = st.form_submit_button("Email feedback", use_container_width=True, type="primary")
+
+    if send:
+        if not message.strip():
+            st.warning("Please enter a message before sending.")
+            st.session_state.pop("tirebot_feedback_mailto", None)
+        else:
+            body = f"Route / context: {ctx}\n\n{message.strip()}"
+            max_body = 1800
+            if len(body) > max_body:
+                body = body[: max_body - 3] + "..."
+            q_sub = urllib.parse.quote("TireBot feedback")
+            q_body = urllib.parse.quote(body)
+            st.session_state["tirebot_feedback_mailto"] = (
+                f"mailto:{FEEDBACK_EMAIL}?subject={q_sub}&body={q_body}"
+            )
+
+    mailto_href = st.session_state.get("tirebot_feedback_mailto")
+    if mailto_href:
+        st.success(f"Click below to send from your email app to **{FEEDBACK_EMAIL}**.")
+        st.markdown(f"[**Open email to {FEEDBACK_EMAIL}**]({mailto_href})")
+        if st.button("Dismiss email link", key="tirebot_feedback_dismiss"):
+            st.session_state.pop("tirebot_feedback_mailto", None)
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def summarize_route(path: Path) -> Dict[str, float]:
     # Small helper to show rough course composition to the rider.
     segments = load_segments(path)
@@ -424,12 +501,37 @@ def main() -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
     events = discover_events(ROUTES_DIR)
-    if not events:
-        st.error("No segment CSV files found in Routes/. Add a route segments CSV and reload.")
-        return
 
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
     st.subheader("Ride Inputs")
+
+    if not events:
+        st.warning(
+            "No routes found in `Routes/`. Add event folders with a `*segment*.csv` and a **GPX** for that course, "
+            f"or email **both** to **[{FEEDBACK_EMAIL}]({route_submission_mailto()})** to have a course added."
+        )
+        render_feedback_footer(None)
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    tpl = ROUTES_DIR / "example_route_segments.csv"
+    with st.expander("Don't see your event? Send a route", expanded=False):
+        st.markdown(
+            f"Email **{FEEDBACK_EMAIL}** with:\n\n"
+            "- **Segment CSV** — required; filename should contain `segment`, with distances in **miles** "
+            "(`segment_start` / `segment_end` or `distance_mi`). See the whitepaper / README for surface columns.\n"
+            "- **GPX** — **required**; used for elevation gain and track length when we add the route to the library.\n\n"
+            f"[Open email draft]({route_submission_mailto()}) (attach your files in your mail app after it opens)."
+        )
+        if tpl.exists():
+            st.download_button(
+                "Download segment CSV template",
+                data=tpl.read_bytes(),
+                file_name="tirebot_segment_template.csv",
+                mime="text/csv",
+                key="tirebot_segment_template_dl",
+            )
+
     with st.form("tirebot_inputs"):
         i1, i2 = st.columns(2)
         route_options = ["Pick a Route/Event"] + list(events.keys())
@@ -458,12 +560,16 @@ def main() -> None:
         submitted = st.form_submit_button("Generate Recommendation", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+    route_context_str = event_label
+
     if not submitted:
         st.info("Select route and weight, then click Generate Recommendation.")
+        render_feedback_footer(route_context_str)
         return
 
     if event_label == "Pick a Route/Event":
         st.warning("Please select a route/event before generating recommendations.")
+        render_feedback_footer(route_context_str)
         return
 
     speed_tier = SPEED_OPTIONS[speed_label]
@@ -481,6 +587,7 @@ def main() -> None:
     ranked_by_rr = score_tires(tires, segments, early_boost)
     if not ranked_by_rr:
         st.error("No tires could be scored. Check CSV data completeness.")
+        render_feedback_footer(route_context_str)
         return
 
     avg_speed_kph = mph_to_kph(avg_speed_mph)
@@ -591,6 +698,8 @@ def main() -> None:
             "Rear PSI": st.column_config.NumberColumn(format="%.1f"),
         },
     )
+
+    render_feedback_footer(route_context_str)
 
 
 if __name__ == "__main__":
