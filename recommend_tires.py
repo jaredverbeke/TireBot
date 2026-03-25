@@ -12,8 +12,10 @@ SURFACE_TO_COL = {
     "cat1": "Cat 1 Gravel ",
     "cat2": "Cat 2 Gravel ",
     "cat3": "Cat 3 Gravel",
-    "above": "Above Category",
 }
+
+ABOVE_CATEGORY_FLAG_COL = "Above Category"
+VALID_SURFACES = {"road", "cat1", "cat2", "cat3", "above"}
 
 # Route segment CSVs use miles for segment_start / segment_end / distance columns.
 MI_TO_KM = 1.60934
@@ -259,8 +261,8 @@ def load_segments(csv_path: Path) -> List[Segment]:
 
     for row in rows:
         surface = (row.get("surface_type") or "").strip().lower()
-        if surface not in SURFACE_TO_COL:
-            raise ValueError(f"Invalid surface_type '{surface}'. Expected one of: {list(SURFACE_TO_COL.keys())}")
+        if surface not in VALID_SURFACES:
+            raise ValueError(f"Invalid surface_type '{surface}'. Expected one of: {sorted(VALID_SURFACES)}")
 
         if has_distance:
             # Per-row distance in miles (prefer distance_mi; distance_km column name is legacy miles).
@@ -327,7 +329,8 @@ def score_tires(
         rr_total = 0.0
         for seg in segments:
             weight = phase_weight(seg.race_position, early_boost) * seg.technicality * seg.selection_risk
-            rr_total += surface_vals[seg.surface] * seg.distance_km * weight
+            surface_key = "cat3" if seg.surface == "above" else seg.surface
+            rr_total += surface_vals[surface_key] * seg.distance_km * weight
 
         total = rr_total
         results.append(
