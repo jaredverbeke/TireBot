@@ -611,6 +611,13 @@ def rank_by_fastest_total_watts(
     return sorted(rows, key=lambda x: x["total_watts"])
 
 
+def dataframe_height_for_rows(n_rows: int, *, header_px: int = 44, row_px: int = 28, max_px: int = 560) -> int:
+    """Compute a table height that avoids extra blank space."""
+    n = max(0, int(n_rows))
+    h = header_px + (n * row_px)
+    return min(max_px, max(header_px, h))
+
+
 def render_feedback_footer(route_label: Optional[str] = None) -> None:
     """Opens the visitor's email client (mailto:). No server-side email on Streamlit Cloud."""
     st.divider()
@@ -955,7 +962,7 @@ def main() -> None:
         rows,
         use_container_width=True,
         hide_index=True,
-        height=420,
+        height=dataframe_height_for_rows(len(rows)),
         column_config={
             "Route Score": st.column_config.NumberColumn(format="%.4f"),
             "RR (W)": st.column_config.NumberColumn(format="%.1f W"),
@@ -1017,7 +1024,12 @@ def main() -> None:
                     "R PSI": r_psi,
                     }
                 )
-            st.dataframe(early_rows, use_container_width=True, hide_index=True, height=320)
+            st.dataframe(
+                early_rows,
+                use_container_width=True,
+                hide_index=True,
+                height=dataframe_height_for_rows(len(early_rows), max_px=420),
+            )
 
     render_feedback_footer(route_context_str)
 
