@@ -770,7 +770,7 @@ def main() -> None:
             "Race start window (minutes)",
             min_value=30,
             max_value=90,
-            value=90,
+            value=60,
             step=5,
             key="tirebot_race_start_minutes",
             help="How much of the route to consider for the start-of-race recommendation.",
