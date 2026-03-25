@@ -26,6 +26,7 @@ ROUTES_DIR = ROOT / "Routes"
 TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.csv"
 BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
+BUILD_NUMBER_PATH = ROOT / "data" / "build_number.txt"
 # Whitepaper: GitHub Pages site (serves docs/index.html + WHITEPAPER.md).
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
 
@@ -180,6 +181,16 @@ def current_git_sha_short() -> Optional[str]:
     try:
         sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT), text=True).strip()
         return sha or None
+    except Exception:
+        return None
+
+
+def current_build_number() -> Optional[int]:
+    try:
+        raw = BUILD_NUMBER_PATH.read_text(encoding="utf-8").strip()
+        if not raw:
+            return None
+        return int(raw)
     except Exception:
         return None
 
@@ -893,6 +904,7 @@ def main() -> None:
     st.set_page_config(page_title="TireBot", page_icon="🚴", layout="wide")
     inject_styles()
     sha = current_git_sha_short()
+    build_no = current_build_number()
     st.markdown(
         """
 <div class="tb-hero">
@@ -908,7 +920,11 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
-    if sha:
+    if build_no is not None and sha:
+        st.caption(f"Build: **#{build_no}** · `{sha}`")
+    elif build_no is not None:
+        st.caption(f"Build: **#{build_no}**")
+    elif sha:
         st.caption(f"Build: `{sha}`")
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
     st.markdown('<p class="tb-section-label">Science &amp; assumptions</p>', unsafe_allow_html=True)
