@@ -772,7 +772,6 @@ def main() -> None:
             max_value=90,
             value=60,
             step=5,
-            disabled=not show_first_90,
             key="tirebot_race_start_minutes",
             help="How much of the route to consider for the start-of-race recommendation.",
         )
@@ -782,7 +781,6 @@ def main() -> None:
             max_value=40.0,
             value=23.0,
             step=0.5,
-            disabled=not show_first_90,
             key="tirebot_race_start_speed_mph",
             help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
         )
