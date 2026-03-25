@@ -230,193 +230,247 @@ def inject_styles() -> None:
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
     :root {
-        /* MidSouth-style vibe: bold ink + loud accents + lots of white/cream. */
-        --tb-ink: #0b0b0f;
-        --tb-paper: #fff7e6;
-        --tb-surface: #ffffff;
-        --tb-surface-2: #fff2cc;
-        --tb-border: rgba(11, 11, 15, 0.90);
+        /* MidSouth-inspired: black base + full accent palette (not a direct copy) */
+        --tb-bg: #050607;
+        --tb-surface: #0b0d10;
+        --tb-surface-2: #0f1217;
+        --tb-ink: rgba(255, 255, 255, 0.92);
+        --tb-text-dim: rgba(255, 255, 255, 0.70);
+        --tb-border: rgba(255, 255, 255, 0.14);
 
-        /* pulled from MidSouth brand imagery (yellow/blue/green/orange) */
+        /* MidSouth palette */
         --tb-yellow: #FFD400;
         --tb-blue: #0B84F3;
         --tb-green: #1F6F4B;
         --tb-orange: #F26A2E;
 
-        --tb-accent: var(--tb-yellow);
-        --tb-accent-soft: rgba(255, 212, 0, 0.18);
-        --tb-text: #0b0b0f;
-        --tb-text-dim: rgba(11, 11, 15, 0.66);
-    }
-
-    .block-container {
-        padding-top: 1.15rem;
-        padding-bottom: 3rem;
-        max-width: 1120px;
+        --tb-focus: rgba(255, 212, 0, 0.28);
     }
 
     .stApp {
         font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
         letter-spacing: 0.01em;
-        background: var(--tb-paper);
+        background: var(--tb-bg);
+        color: var(--tb-ink);
     }
-
-    /* paper texture + sticker splats (no assets, no copy) */
-    .stApp::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        background:
-            radial-gradient(900px 520px at 10% 12%, rgba(255, 212, 0, 0.16) 0%, transparent 60%),
-            radial-gradient(760px 520px at 92% 10%, rgba(11, 132, 243, 0.12) 0%, transparent 60%),
-            radial-gradient(900px 640px at 70% 92%, rgba(242, 106, 46, 0.10) 0%, transparent 62%),
-            repeating-linear-gradient(135deg, rgba(11, 11, 15, 0.035) 0px, rgba(11, 11, 15, 0.035) 1px, transparent 1px, transparent 9px);
-        opacity: 1;
-        z-index: 0;
-    }
-    .stApp > header, .stApp > div { position: relative; z-index: 1; }
-
+    /* Default readable text on dark background (avoid overriding light inputs). */
+    .stMarkdown, .stMarkdown p, .stMarkdown li { color: var(--tb-ink); }
     h1, h2, h3 {
         font-family: "Space Grotesk", "Outfit", ui-sans-serif, system-ui, sans-serif !important;
         letter-spacing: -0.02em;
         color: var(--tb-ink);
     }
+    .block-container { padding-top: 1.25rem; padding-bottom: 3rem; max-width: 1120px; }
 
-    /* cards use thick ink outline + offset shadow */
+    [data-testid="stAppViewContainer"] { background: var(--tb-bg); }
+    [data-testid="stHeader"] { background: transparent; }
+    /* Many Streamlit widgets use theme tokens; ensure they are readable. */
+    [data-testid="stWidgetLabel"], .stTextInput label, .stNumberInput label, .stSelectbox label, .stRadio label {
+        color: var(--tb-ink) !important;
+    }
+
+    /* Selectbox / dropdown (BaseWeb) on dark background */
+    [data-baseweb="select"] > div {
+        background: #ffffff !important;
+        border-color: rgba(0, 0, 0, 0.14) !important;
+        color: #050607 !important;
+    }
+    [data-baseweb="select"] input {
+        color: #050607 !important;
+        -webkit-text-fill-color: #050607 !important;
+        caret-color: var(--tb-orange) !important;
+    }
+    [data-baseweb="select"] [data-testid="stMarkdownContainer"] {
+        color: #050607 !important;
+    }
+    /* Dropdown menu */
+    ul[role="listbox"] {
+        background: #ffffff !important;
+        border: 1px solid rgba(0, 0, 0, 0.14) !important;
+    }
+    li[role="option"] {
+        color: #050607 !important;
+    }
+
+    /* Primary button: white box with black text */
+    .stButton > button[kind="primary"] {
+        background: #ffffff !important;
+        color: #050607 !important;
+        border: 1px solid rgba(242, 106, 46, 0.55) !important;
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45) !important;
+    }
+    /* Some Streamlit buttons (e.g. form submit) render via different wrappers */
+    .stFormSubmitButton > button,
+    .stFormSubmitButton > button[kind="primary"],
+    button[kind="primary"],
+    button[data-testid="baseButton-primary"] {
+        background: #ffffff !important;
+        color: #050607 !important;
+        -webkit-text-fill-color: #050607 !important;
+        border: 1px solid rgba(242, 106, 46, 0.55) !important;
+    }
+    .stFormSubmitButton > button *,
+    button[kind="primary"] * {
+        color: #050607 !important;
+        -webkit-text-fill-color: #050607 !important;
+        fill: #050607 !important;
+    }
+
+    /* Text inputs / text areas should stay light with dark text */
+    [data-baseweb="input"] input,
+    [data-baseweb="textarea"] textarea,
+    textarea,
+    input[type="text"],
+    input[type="number"] {
+        background: #ffffff !important;
+        color: #050607 !important;
+        -webkit-text-fill-color: #050607 !important;
+        caret-color: var(--tb-orange) !important;
+    }
+    [data-baseweb="input"] > div,
+    [data-baseweb="textarea"] > div {
+        background: #ffffff !important;
+        border-color: rgba(0, 0, 0, 0.14) !important;
+    }
+    *:focus-visible {
+        outline: 3px solid var(--tb-focus);
+        outline-offset: 2px;
+        border-radius: 10px;
+    }
+
+    /* Fun but clean: solid blocks + accent glow (no gradients) */
+    .tb-hero {
+        border: 1px solid var(--tb-border);
+        border-radius: 18px;
+        background: var(--tb-surface);
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1.1rem;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+    }
+    .tb-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--tb-text-dim);
+        margin: 0 0 0.35rem;
+    }
+
     .tb-card {
-        border: 3px solid var(--tb-ink);
+        border: 1px solid var(--tb-border);
         border-radius: 18px;
         background: var(--tb-surface);
         padding: 1.05rem 1.2rem;
         margin-bottom: 1rem;
-        box-shadow: 6px 6px 0 rgba(11, 11, 15, 0.22);
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
     }
-    .tb-card h3, .tb-card [data-testid="stHeader"] { margin-top: 0 !important; }
+    .tb-section-label { color: var(--tb-orange); font-weight: 800; }
+    .tb-muted { color: var(--tb-text-dim); }
 
-    .tb-section-label {
-        font-size: 0.72rem;
+    .tb-chip {
+        display: inline-block;
+        padding: 0.28rem 0.62rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        font-size: 0.78rem;
+        font-weight: 650;
+        margin-right: 0.45rem;
+        margin-top: 0.35rem;
+        color: rgba(255, 255, 255, 0.86);
+    }
+    .tb-chip:nth-child(4n+1) { border-color: rgba(255, 212, 0, 0.55); }
+    .tb-chip:nth-child(4n+2) { border-color: rgba(11, 132, 243, 0.55); }
+    .tb-chip:nth-child(4n+3) { border-color: rgba(31, 111, 75, 0.55); }
+    .tb-chip:nth-child(4n+4) { border-color: rgba(242, 106, 46, 0.55); }
+
+    /* MidSouth-ish: big clean links instead of gradients */
+    a, a:visited {
+        color: rgba(255, 255, 255, 0.92);
+        text-decoration: none;
+        border-bottom: 2px solid rgba(255, 212, 0, 0.75);
+    }
+    a:hover {
+        border-bottom-color: rgba(242, 106, 46, 0.92);
+    }
+
+    /* Streamlit sliders: move active color to orange */
+    [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {
+        box-shadow: 0 0 0 4px rgba(242, 106, 46, 0.22) !important;
+    }
+    [data-testid="stSlider"] [data-baseweb="slider"] div[aria-valuenow] {
+        background-color: rgba(242, 106, 46, 1) !important;
+    }
+    [data-testid="stSlider"] [data-baseweb="slider"] div[aria-hidden="true"] {
+        background-color: rgba(242, 106, 46, 0.55) !important;
+    }
+
+    /* Primary button styling is defined once above (white box, black text). */
+
+    [data-testid="stExpander"] details {
+        border: 1px solid var(--tb-border) !important;
+        border-radius: 18px !important;
+        background: var(--tb-surface-2) !important;
+    }
+
+    [data-testid="stDataFrame"] {
+        border: 1px solid var(--tb-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+        background: var(--tb-surface);
+    }
+
+    /* Section separators: straight orange line */
+    .tb-divider-label {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        margin: 1.65rem 0 1.05rem;
+        font-size: 0.78rem;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.14em;
-        color: var(--tb-ink);
-        margin: 0 0 0.2rem;
+        color: rgba(255, 255, 255, 0.78);
     }
-    .tb-muted { color: var(--tb-text-dim); font-size: 0.9rem; line-height: 1.55; }
+    .tb-divider-label::after {
+        content: "";
+        flex: 1;
+        height: 2px;
+        background: rgba(242, 106, 46, 0.92);
+        box-shadow: 0 0 0 1px rgba(242, 106, 46, 0.10);
+    }
 
-    /* hero becomes a bold banner */
-    .tb-hero {
-        border: 4px solid var(--tb-ink);
-        border-radius: 22px;
-        background: linear-gradient(135deg, #ffffff 0%, rgba(255, 212, 0, 0.18) 45%, rgba(11, 132, 243, 0.10) 100%);
-        box-shadow: 10px 10px 0 rgba(11, 11, 15, 0.22);
-        padding: 1.35rem 1.55rem 1.55rem;
-        position: relative;
-        overflow: hidden;
-        margin-bottom: 1.15rem;
+    /* Streamlit divider (<hr>): force straight orange line */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        margin: 1.35rem 0 !important;
+        background: rgba(242, 106, 46, 0.92) !important;
+        box-shadow: 0 0 0 1px rgba(242, 106, 46, 0.10);
+        opacity: 1;
     }
-    .tb-eyebrow {
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: rgba(11, 11, 15, 0.72);
-        margin: 0 0 0.35rem;
-    }
-    .tb-hero h1 { font-size: clamp(1.55rem, 3.2vw, 2.05rem); margin: 0; font-weight: 800; }
-    .tb-hero p { margin: 0.55rem 0 0; color: rgba(11, 11, 15, 0.76); font-size: 1.02rem; line-height: 1.5; max-width: 44rem; }
 
-    /* chips become sticker labels */
-    .tb-chip {
-        display: inline-block;
-        padding: 0.35rem 0.70rem;
+    /* Streamlit divider component (some builds render dotted/oval shapes) */
+    [data-testid="stDivider"] {
+        height: 2px !important;
+        background: rgba(242, 106, 46, 0.92) !important;
         border-radius: 999px;
-        border: 2px solid var(--tb-ink);
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        margin-right: 0.45rem;
-        margin-top: 0.35rem;
-        color: var(--tb-ink);
-        box-shadow: 3px 3px 0 rgba(11, 11, 15, 0.18);
-        background: var(--tb-yellow);
-        transform: rotate(-1deg);
+        box-shadow: 0 0 0 1px rgba(242, 106, 46, 0.10);
     }
-    .tb-chip:nth-child(4n+1) { background: var(--tb-yellow); }
-    .tb-chip:nth-child(4n+2) { background: rgba(11, 132, 243, 0.22); }
-    .tb-chip:nth-child(4n+3) { background: rgba(242, 106, 46, 0.22); }
-    .tb-chip:nth-child(4n+4) { background: rgba(31, 111, 75, 0.18); }
+    [data-testid="stDivider"] * {
+        display: none !important;
+    }
 
-    /* buttons: ink outline + offset shadow, like a poster button */
-    .stButton > button[kind="primary"] {
-        font-weight: 900;
+    /* Our own section rule */
+    .tb-rule {
+        height: 2px;
+        width: 100%;
+        background: rgba(242, 106, 46, 0.92);
         border-radius: 999px;
-        padding: 0.58rem 1.08rem;
-        border: 3px solid var(--tb-ink) !important;
-        color: var(--tb-ink) !important;
-        background: var(--tb-yellow) !important;
-        box-shadow: 5px 5px 0 rgba(11, 11, 15, 0.22);
-        transform: translate(0, 0);
-        transition: transform 90ms ease, box-shadow 90ms ease, filter 90ms ease;
+        box-shadow: 0 0 0 1px rgba(242, 106, 46, 0.10);
+        margin: 1.35rem 0;
     }
-    .stButton > button[kind="primary"]:hover {
-        transform: translate(-1px, -1px);
-        box-shadow: 7px 7px 0 rgba(11, 11, 15, 0.22);
-        filter: saturate(1.08);
-    }
-
-    /* expanders: ink outline */
-    [data-testid="stExpander"] details {
-        border: 3px solid var(--tb-ink) !important;
-        border-radius: 18px !important;
-        background: rgba(255, 255, 255, 0.92) !important;
-    }
-
-    /* metrics: same ink-outline system */
-    [data-testid="stMetric"],
-    [data-testid="metric-container"] {
-        background: var(--tb-surface) !important;
-        border: 3px solid var(--tb-ink) !important;
-        border-radius: 18px !important;
-        padding: 0.7rem 0.9rem !important;
-        box-shadow: 6px 6px 0 rgba(11, 11, 15, 0.18);
-    }
-    [data-testid="stMetric"] label,
-    [data-testid="metric-container"] label {
-        color: rgba(11, 11, 15, 0.70) !important;
-        font-size: 0.75rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        font-weight: 800 !important;
-    }
-
-    /* recommendation grid cards */
-    .tb-rec-item {
-        padding: 0.70rem 0.80rem;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 2px solid var(--tb-ink);
-        box-shadow: 4px 4px 0 rgba(11, 11, 15, 0.14);
-    }
-    .tb-rec-k { color: rgba(11, 11, 15, 0.72); font-weight: 800; }
-
-    /* dataframes: ink outline */
-    [data-testid="stDataFrame"] {
-        border: 3px solid var(--tb-ink);
-        border-radius: 18px;
-        overflow: hidden;
-        box-shadow: 8px 8px 0 rgba(11, 11, 15, 0.18);
-        background: white;
-    }
-    /* Make tables more compact and allow header wrapping */
-    [data-testid="stDataFrame"] * { font-size: 0.86rem; }
-    [data-testid="stDataFrame"] th {
-        white-space: normal !important;
-        line-height: 1.1 !important;
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.35rem !important;
-    }
-    [data-testid="stDataFrame"] td { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
 </style>
         """,
         unsafe_allow_html=True,
@@ -858,7 +912,7 @@ def dataframe_height_for_rows(
 
 def render_feedback_footer(route_label: Optional[str] = None) -> None:
     """Opens the visitor's email client (mailto:). No server-side email on Streamlit Cloud."""
-    st.divider()
+    st.markdown('<div class="tb-rule"></div>', unsafe_allow_html=True)
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
     st.markdown('<p class="tb-section-label">Contact</p>', unsafe_allow_html=True)
     st.subheader("Feedback")
