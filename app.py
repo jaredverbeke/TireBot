@@ -270,6 +270,17 @@ def inject_styles() -> None:
         color: var(--tb-ink) !important;
     }
 
+    /* Metrics (st.metric) must be readable on dark bg */
+    [data-testid="stMetric"] * {
+        color: var(--tb-ink) !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: var(--tb-text-dim) !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: var(--tb-ink) !important;
+    }
+
     /* Selectbox / dropdown (BaseWeb) on dark background */
     [data-baseweb="select"] > div {
         background: #ffffff !important;
