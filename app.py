@@ -611,11 +611,21 @@ def rank_by_fastest_total_watts(
     return sorted(rows, key=lambda x: x["total_watts"])
 
 
-def dataframe_height_for_rows(n_rows: int, *, header_px: int = 44, row_px: int = 28, max_px: int = 560) -> int:
-    """Compute a table height that avoids extra blank space."""
+def dataframe_height_for_rows(
+    n_rows: int,
+    *,
+    header_px: int = 52,
+    row_px: int = 34,
+    extra_px: int = 12,
+    max_px: int = 900,
+) -> int:
+    """Compute a table height that shows all rows without scrolling.
+
+    Streamlit's rendered row height varies a bit by OS/browser; we include a small buffer.
+    """
     n = max(0, int(n_rows))
-    h = header_px + (n * row_px)
-    return min(max_px, max(header_px, h))
+    h = header_px + (n * row_px) + extra_px
+    return min(max_px, max(header_px + extra_px, h))
 
 
 def render_feedback_footer(route_label: Optional[str] = None) -> None:
