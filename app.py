@@ -722,6 +722,33 @@ def main() -> None:
                 key="tirebot_segment_template_dl",
             )
 
+    show_first_90 = st.checkbox(
+        "Find best tire for the race start",
+        value=False,
+        key="tirebot_show_race_start",
+        help="Pick an early-race time window (minutes) and re-rank tires on just that initial portion of the route.",
+    )
+    race_start_minutes = st.slider(
+        "Race start window (minutes)",
+        min_value=30,
+        max_value=90,
+        value=90,
+        step=5,
+        disabled=not show_first_90,
+        key="tirebot_race_start_minutes",
+        help="How much of the route to consider for the start-of-race recommendation.",
+    )
+    early_speed_mph = st.slider(
+        "Race start speed (mph)",
+        min_value=10.0,
+        max_value=40.0,
+        value=23.0,
+        step=0.5,
+        disabled=not show_first_90,
+        key="tirebot_race_start_speed_mph",
+        help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
+    )
+
     with st.form("tirebot_inputs"):
         i1, i2 = st.columns(2)
         route_options = ["Pick a Route/Event"] + list(events.keys())
@@ -742,30 +769,6 @@ def main() -> None:
             help="Rolling resistance uses this speed everywhere. Aero penalty uses this speed scaled by GPX: only "
             "distance that is not a steep downhill or steep climb counts (see results footnote).",
         )
-        show_first_90 = st.checkbox(
-            "Find best tire for the race start",
-            value=False,
-            help="Pick an early-race time window (minutes) and re-rank tires on just that initial portion of the route.",
-        )
-        early_speed_mph = None
-        race_start_minutes = None
-        if show_first_90:
-            race_start_minutes = st.slider(
-                "Race start window (minutes)",
-                min_value=30,
-                max_value=90,
-                value=90,
-                step=5,
-                help="How much of the route to consider for the start-of-race recommendation.",
-            )
-            early_speed_mph = st.slider(
-                "Race start speed (mph)",
-                min_value=10.0,
-                max_value=40.0,
-                value=min(32.0, max(10.0, float(avg_speed_mph) + 3.0)),
-                step=0.5,
-                help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
-            )
 
         with st.expander("Advanced options", expanded=False):
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
@@ -940,9 +943,9 @@ def main() -> None:
     )
 
     if show_first_90:
-        early_speed = float(early_speed_mph or avg_speed_mph)
+        early_speed = float(early_speed_mph)
         early_speed_tier = speed_tier_from_avg_mph(early_speed)
-        minutes = float(race_start_minutes or 90.0)
+        minutes = float(race_start_minutes)
         early_segments = segments_first_n_minutes(segments, early_speed, minutes)
         if not early_segments:
             st.warning("Could not compute a race-start subset for this route.")
