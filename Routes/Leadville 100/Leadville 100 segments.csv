@@ -4,8 +4,10 @@ St. Kevins climb (dirt road),4,11,cat3,1
 Hagerman Pass / mining roads,11,15,road,1
 High fire road rollers,15,23,cat3,1
 Pipeline / swamp river sector,23,28,road,1
-Twin Lakes approach,28,74,cat3,1
+Twin Lakes approach (to Powerline),28,52,cat3,1
+Powerline descent (very rough),52,56,above,1
+Twin Lakes approach (post Powerline),56,74,cat3,1
 Columbine approach,74,80,road,1
 Columbine upper (rough / loose),80,88,cat3,1
-Columbine descent,88,92,road,1
+Columbine descent (very rough),88,92,above,1
 Twin Lakes / brief paved connectors,92,104,cat2,1

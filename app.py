@@ -38,9 +38,9 @@ MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
 
 # Rough-surface impedance penalty (tunable). Units: adds CRR-equivalent to route_score.
 IMPEDANCE_GAMMA = 2.2
-IMPEDANCE_K_BY_SURFACE = {"road": 0.0, "cat1": 0.00018, "cat2": 0.00055, "cat3": 0.00110}
+IMPEDANCE_K_BY_SURFACE = {"road": 0.0, "cat1": 0.00018, "cat2": 0.00055, "cat3": 0.00110, "above": 0.00160}
 # Target stiffness proxy by surface (psi*mm/kg). Rougher surfaces want lower stiffness (more compliance).
-IMPEDANCE_TARGET_STIFFNESS = {"road": 26.0, "cat1": 15.0, "cat2": 13.5, "cat3": 12.0}
+IMPEDANCE_TARGET_STIFFNESS = {"road": 26.0, "cat1": 15.0, "cat2": 13.5, "cat3": 12.0, "above": 11.0}
 # Support floor: narrow tires under heavier riders require minimum pressure.
 SUPPORT_PSI_FACTOR = 16.0  # psi ≈ factor * (weight_kg / width_mm)
 
@@ -60,7 +60,7 @@ def km_to_mi(km: float) -> float:
 
 
 def cat3_distance_mi(segments: List[Segment]) -> float:
-    return km_to_mi(sum(s.distance_km for s in segments if s.surface == "cat3"))
+    return km_to_mi(sum(s.distance_km for s in segments if s.surface in {"cat3", "above"}))
 
 
 def cat2_distance_mi(segments: List[Segment]) -> float:
@@ -419,7 +419,7 @@ def route_submission_mailto() -> str:
 def route_roughness_score(segments: List[Segment]) -> float:
     if not segments:
         return 0.0
-    surface_score = {"road": 0.0, "cat1": 0.9, "cat2": 1.8, "cat3": 3.0}
+    surface_score = {"road": 0.0, "cat1": 0.9, "cat2": 1.8, "cat3": 3.0, "above": 3.8}
     total_distance = sum(s.distance_km for s in segments)
     if total_distance <= 0:
         return 0.0
@@ -841,7 +841,7 @@ def render_feedback_footer(route_label: Optional[str] = None) -> None:
 def summarize_route(path: Path) -> Dict[str, float]:
     # Small helper to show rough course composition to the rider.
     segments = load_segments(path)
-    totals = {"road": 0.0, "cat1": 0.0, "cat2": 0.0, "cat3": 0.0}
+    totals = {"road": 0.0, "cat1": 0.0, "cat2": 0.0, "cat3": 0.0, "above": 0.0}
     for seg in segments:
         totals[seg.surface] += seg.distance_km
     total_dist = sum(totals.values()) or 1.0
@@ -852,6 +852,7 @@ def summarize_route(path: Path) -> Dict[str, float]:
         "cat1_pct": (totals["cat1"] / total_dist) * 100.0,
         "cat2_pct": (totals["cat2"] / total_dist) * 100.0,
         "cat3_pct": (totals["cat3"] / total_dist) * 100.0,
+        "above_pct": (totals["above"] / total_dist) * 100.0,
     }
 
 
@@ -1120,6 +1121,7 @@ def main() -> None:
         st.progress(min(max(route_stats["cat1_pct"] / 100.0, 0.0), 1.0), text=f"Cat 1: {route_stats['cat1_pct']:.1f}%")
         st.progress(min(max(route_stats["cat2_pct"] / 100.0, 0.0), 1.0), text=f"Cat 2: {route_stats['cat2_pct']:.1f}%")
         st.progress(min(max(route_stats["cat3_pct"] / 100.0, 0.0), 1.0), text=f"Cat 3: {route_stats['cat3_pct']:.1f}%")
+        st.progress(min(max(route_stats.get("above_pct", 0.0) / 100.0, 0.0), 1.0), text=f"Above: {route_stats.get('above_pct', 0.0):.1f}%")
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="tb-divider-label">Full comparison</div>', unsafe_allow_html=True)

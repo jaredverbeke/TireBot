@@ -12,6 +12,7 @@ SURFACE_TO_COL = {
     "cat1": "Cat 1 Gravel ",
     "cat2": "Cat 2 Gravel ",
     "cat3": "Cat 3 Gravel",
+    "above": "Above Category",
 }
 
 # Route segment CSVs use miles for segment_start / segment_end / distance columns.
