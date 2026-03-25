@@ -743,19 +743,28 @@ def main() -> None:
             "distance that is not a steep downhill or steep climb counts (see results footnote).",
         )
         show_first_90 = st.checkbox(
-            "Also show best tire for first 90 minutes",
+            "Find best tire for the race start",
             value=False,
-            help="Uses your average speed slider to approximate distance covered in 90 minutes, then re-ranks tires on that early subset.",
+            help="Pick an early-race time window (minutes) and re-rank tires on just that initial portion of the route.",
         )
         early_speed_mph = None
+        race_start_minutes = None
         if show_first_90:
+            race_start_minutes = st.slider(
+                "Race start window (minutes)",
+                min_value=30,
+                max_value=90,
+                value=90,
+                step=5,
+                help="How much of the route to consider for the start-of-race recommendation.",
+            )
             early_speed_mph = st.slider(
-                "Early 90-min speed (mph)",
+                "Race start speed (mph)",
                 min_value=10.0,
                 max_value=40.0,
                 value=min(32.0, max(10.0, float(avg_speed_mph) + 3.0)),
                 step=0.5,
-                help="Used only for the early-race (first 90 minutes) view. This speed determines the early distance cutoff and the watts in that early ranking.",
+                help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
             )
 
         with st.expander("Advanced options", expanded=False):
@@ -933,9 +942,10 @@ def main() -> None:
     if show_first_90:
         early_speed = float(early_speed_mph or avg_speed_mph)
         early_speed_tier = speed_tier_from_avg_mph(early_speed)
-        early_segments = segments_first_n_minutes(segments, early_speed, 90.0)
+        minutes = float(race_start_minutes or 90.0)
+        early_segments = segments_first_n_minutes(segments, early_speed, minutes)
         if not early_segments:
-            st.warning("Could not compute a 90-minute subset for this route.")
+            st.warning("Could not compute a race-start subset for this route.")
         else:
             early_route_km = sum(s.distance_km for s in early_segments)
             early_weighted_distance = effective_weighted_distance(early_segments, early_boost)
@@ -953,9 +963,9 @@ def main() -> None:
             )
             early_winner = early_ranked[0]
             st.markdown('<div class="tb-divider-label">Early race</div>', unsafe_allow_html=True)
-            st.subheader("Best tire for first 90 minutes")
+            st.subheader("Best tire for race start")
             st.caption(
-                f"Approximates first 90 minutes as the first {km_to_mi(early_route_km):.1f} mi of the route at {early_speed:.1f} mph."
+                f"Approximates the first {minutes:.0f} minutes as the first {km_to_mi(early_route_km):.1f} mi of the route at {early_speed:.1f} mph."
             )
             e1, e2, e3 = st.columns(3)
             e1.metric("Early best tire", early_winner["tire_name"])
