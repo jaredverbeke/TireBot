@@ -8,6 +8,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import pandas as pd
 import streamlit as st
 
 from recommend_tires import Segment, load_segments, load_tires_with_optional_brr, score_tires
@@ -43,9 +44,83 @@ IMPEDANCE_TARGET_STIFFNESS = {"road": 26.0, "cat1": 15.0, "cat2": 13.5, "cat3": 
 # Support floor: narrow tires under heavier riders require minimum pressure.
 SUPPORT_PSI_FACTOR = 16.0  # psi ≈ factor * (weight_kg / width_mm)
 
+# Flat/issue risk (route-level proxy) driven by Cat 3 %.
+RISK_CAT3_LOW_PCT = 10.0
+RISK_CAT3_MED_PCT = 25.0
+RISK_NO_CAT3_MILES = 0.25
+RISK_MTB_NO_RISK_MIN_IN = 2.4
+RISK_MTB_NO_RISK_MIN_MM = RISK_MTB_NO_RISK_MIN_IN * 25.4
+
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
+
+
+def tire_issue_risk_label(cat3_pct: float) -> str:
+    p = max(0.0, float(cat3_pct))
+    if p < RISK_CAT3_LOW_PCT:
+        return "Low"
+    if p < RISK_CAT3_MED_PCT:
+        return "Medium"
+    return "High"
+
+
+def cat3_distance_mi(segments: List[Segment]) -> float:
+    return km_to_mi(sum(s.distance_km for s in segments if s.surface == "cat3"))
+
+
+def tire_issue_risk_for_tire(width_mm: float, cat3_mi: float) -> str:
+    """Low/Medium/High risk proxy based on Cat 3 miles and tire width.
+
+    Rule: MTB tires ≥ 2.4\" are treated as no Cat 3 risk.
+    """
+    w = float(width_mm or 0.0)
+    c3 = max(0.0, float(cat3_mi))
+    if c3 < RISK_NO_CAT3_MILES:
+        return "Low"
+    if w >= RISK_MTB_NO_RISK_MIN_MM:
+        return "Low"
+
+    # Narrower tires amplify risk on rough (cat3) exposure.
+    # reference width: 50 mm (gravel+). below that increases risk.
+    ref = 50.0
+    vuln = max(0.0, (ref - w) / ref)
+    score = c3 * (1.0 + 1.8 * vuln)
+    if score < 6.0:
+        return "Low"
+    if score < 16.0:
+        return "Medium"
+    return "High"
+
+
+def risk_badge_html(label: str) -> str:
+    lab = (label or "").strip()
+    colors = {
+        "Low": ("#15803d", "rgba(34, 197, 94, 0.18)"),
+        "Medium": ("#a16207", "rgba(234, 179, 8, 0.22)"),
+        "High": ("#b91c1c", "rgba(239, 68, 68, 0.18)"),
+    }
+    fg, bg = colors.get(lab, ("#0b1220", "rgba(37, 99, 235, 0.10)"))
+    return (
+        f'<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:999px;'
+        f'border:1px solid {bg};background:{bg};color:{fg};font-weight:700;font-size:0.82rem;">{html.escape(lab)}</span>'
+    )
+
+
+def style_risk(df: pd.DataFrame) -> "pd.io.formats.style.Styler":
+    def risk_style(v: object) -> str:
+        s = str(v)
+        if s == "Low":
+            return "background-color: rgba(34, 197, 94, 0.18); color: #14532d; font-weight: 700;"
+        if s == "Medium":
+            return "background-color: rgba(234, 179, 8, 0.22); color: #713f12; font-weight: 700;"
+        if s == "High":
+            return "background-color: rgba(239, 68, 68, 0.18); color: #7f1d1d; font-weight: 700;"
+        return ""
+
+    if "Risk" in df.columns:
+        return df.style.applymap(risk_style, subset=["Risk"])
+    return df.style
 
 
 def current_git_sha_short() -> Optional[str]:
@@ -967,6 +1042,9 @@ def main() -> None:
     winner_rr_watts = winner["rr_watts"]
     winner_aero_penalty = winner["aero_penalty_watts"]
     winner_total_watts = winner["total_watts"]
+    cat3_mi = cat3_distance_mi(segments)
+    risk_label = tire_issue_risk_for_tire(winner_width, cat3_mi)
+    risk_badge = risk_badge_html(risk_label)
 
     st.markdown('<div class="tb-divider-label">Snapshot</div>', unsafe_allow_html=True)
     m1, m2, m3, m4 = st.columns(4)
@@ -986,6 +1064,7 @@ def main() -> None:
 <div class="tb-rec-grid">
   <div class="tb-rec-item"><span class="tb-rec-k">Tire choice</span><span class="tb-rec-v">{wn}</span></div>
   <div class="tb-rec-item"><span class="tb-rec-k">Pressure (F / R)</span><span class="tb-rec-v">{front_psi:.1f} / {rear_psi:.1f} psi</span></div>
+  <div class="tb-rec-item"><span class="tb-rec-k">Tire issue risk</span><span class="tb-rec-v">{risk_badge}</span></div>
   <div class="tb-rec-item"><span class="tb-rec-k">Rolling resistance</span><span class="tb-rec-v">{winner_rr_watts:.1f} W</span></div>
   <div class="tb-rec-item"><span class="tb-rec-k">Aero width penalty</span><span class="tb-rec-v">{winner_aero_penalty:+.1f} W</span></div>
   <div class="tb-rec-item"><span class="tb-rec-k">Tire mass penalty</span><span class="tb-rec-v">{winner['mass_penalty_watts']:+.2f} W ({winner['tire_mass_g']:.0f} g / tire)</span></div>
@@ -1011,6 +1090,8 @@ def main() -> None:
         st.markdown('<div class="tb-card">', unsafe_allow_html=True)
         st.markdown('<p class="tb-section-label">Course mix</p>', unsafe_allow_html=True)
         st.subheader("Route composition")
+        st.markdown(f"**Tire issue risk (proxy):** `{risk_label}` (based on Cat 3 miles + tire width)")
+        st.caption(f"Cat 3 distance: **{cat3_mi:.1f} mi**. MTB tires ≥ {RISK_MTB_NO_RISK_MIN_IN:.1f}\" are treated as Low risk on Cat 3.")
         st.progress(min(max(route_stats["road_pct"] / 100.0, 0.0), 1.0), text=f"Road: {route_stats['road_pct']:.1f}%")
         st.progress(min(max(route_stats["cat1_pct"] / 100.0, 0.0), 1.0), text=f"Cat 1: {route_stats['cat1_pct']:.1f}%")
         st.progress(min(max(route_stats["cat2_pct"] / 100.0, 0.0), 1.0), text=f"Cat 2: {route_stats['cat2_pct']:.1f}%")
@@ -1024,11 +1105,13 @@ def main() -> None:
         width_text = f"{result['width_mm']:.1f}"
         tire_width = result["width_mm"]
         f_psi, r_psi = estimate_pressure(tire_width, weight_kg, speed_tier, roughness)
+        risk = tire_issue_risk_for_tire(tire_width, cat3_mi)
         rows.append(
             {
                 "Rank": idx,
                 "Tire": result["tire_name"],
                 "Width (mm)": width_text,
+                "Risk": risk,
                 "Route Score": result["score"],
                 "RR (W)": result["rr_watts"],
                 "Imp (W)": result.get("impedance_watts", 0.0),
@@ -1042,7 +1125,7 @@ def main() -> None:
         )
 
     st.dataframe(
-        rows,
+        style_risk(pd.DataFrame(rows)),
         use_container_width=True,
         hide_index=True,
         height=dataframe_height_for_rows(len(rows)),
@@ -1096,24 +1179,27 @@ def main() -> None:
             e3.metric("Early aero penalty", f"{early_winner['aero_penalty_watts']:+.1f} W")
 
             early_rows = []
+            early_cat3_mi = cat3_distance_mi(early_segments)
             for idx, result in enumerate(early_ranked[: min(top_n, 8)], start=1):
                 f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, early_speed_tier, roughness)
+                risk = tire_issue_risk_for_tire(result["width_mm"], early_cat3_mi)
                 early_rows.append(
                     {
                         "Rank": idx,
                         "Tire": result["tire_name"],
                         "Width (mm)": f"{result['width_mm']:.1f}",
-                    "RR (W)": result["rr_watts"],
-                    "Imp (W)": result.get("impedance_watts", 0.0),
-                    "Aero (W)": result["aero_penalty_watts"],
-                    "Mass (W)": result["mass_penalty_watts"],
-                    "Total (W)": result["total_watts"],
-                    "F PSI": f_psi,
-                    "R PSI": r_psi,
+                        "Risk": risk,
+                        "RR (W)": result["rr_watts"],
+                        "Imp (W)": result.get("impedance_watts", 0.0),
+                        "Aero (W)": result["aero_penalty_watts"],
+                        "Mass (W)": result["mass_penalty_watts"],
+                        "Total (W)": result["total_watts"],
+                        "F PSI": f_psi,
+                        "R PSI": r_psi,
                     }
                 )
             st.dataframe(
-                early_rows,
+                style_risk(pd.DataFrame(early_rows)),
                 use_container_width=True,
                 hide_index=True,
                 height=dataframe_height_for_rows(len(early_rows), max_px=420),
