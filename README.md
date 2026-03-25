@@ -40,22 +40,6 @@ The app lets you:
 - enter rider weight in kg
 - get tire recommendation and estimated front/rear pressure
 
-## Wolf Tooth pressure baseline file
-
-The app supports a data-backed pressure lookup from:
-
-- `data/wolf_tooth_baseline.csv`
-
-Expected columns:
-
-- `bike_type,tire_setup,casing_type,terrain_class,weight_kg,width_mm,rear_psi,front_psi`
-
-Notes:
-
-- If the file has rows, pressure uses baseline lookup/interpolation.
-- If the file is empty, the app uses the heuristic fallback model.
-- Terrain is mapped from route roughness into classes `2`, `3`, `4` for lookup.
-
 ## Inputs
 
 ### Tire data

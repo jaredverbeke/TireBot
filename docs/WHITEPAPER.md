@@ -79,18 +79,9 @@ From app inputs:
 - average speed (mph), on a single slider (used for rolling power everywhere, and as the speed in the aero formula where GPX-based distance weighting applies)
 - early-race weighting multiplier
 
-If Wolf Tooth baseline pressure data is absent, a coarse **speed tier** is inferred only from this average speed (≥23 mph → “pro”, &lt;18 mph → “ride”, otherwise “amateur”) for the heuristic pressure fallback—not for rolling or aero math.
+For pressure recommendations, TireBot uses a heuristic model that depends on tire width, rider weight, route roughness, and the selected average speed. A coarse internal “speed tier” is inferred from average speed (≥23 mph → “pro”, &lt;18 mph → “ride”, otherwise “amateur”) only as an input to that heuristic—not for rolling or aero math.
 
-### 2.4 Pressure baseline data (optional)
-
-File:
-
-- `data/wolf_tooth_baseline.csv`
-
-If this file has rows, TireBot uses it for pressure lookup/interpolation.
-If empty, app falls back to heuristic pressure estimation.
-
-### 2.5 Tire mass data (optional)
+### 2.4 Tire mass data (optional)
 
 File:
 
@@ -194,14 +185,7 @@ Fastest tire = lowest total watts.
 
 TireBot pressure path:
 
-1. If pressure baseline data exists (`wolf_tooth_baseline.csv`):
-   - map route roughness to terrain class
-   - interpolate nearest pressure points by:
-     - terrain class
-     - rider weight
-     - tire width
-2. Otherwise:
-   - use a fallback heuristic model with width, rider weight, speed, and route roughness
+1. Use a heuristic pressure model with tire width, rider weight, average speed, and route roughness.
 
 Pressures are presented as race-day starting points, not absolute final values.
 
@@ -234,14 +218,13 @@ Small differences (< 1-2 W total) are often within modeling noise and should be 
 - Surface categories are simplified into four classes
 - Aero model is a practical proxy, not full CFD; GPX grade thresholds for excluding downhills/climbs are heuristics, not physics
 - Tire mass may be estimated if measured data is missing
-- Pressure baseline quality depends on data coverage in CSV
+- Pressure model is heuristic and should be validated on real terrain and equipment
 
 ---
 
 ## 8) Recommended next improvements
 
 - add measured tire mass for all key tires
-- expand pressure baseline rows for better interpolation coverage
 - include wind assumptions in aero model
 - include temperature/wet-condition modifiers
 - add confidence intervals around rankings

@@ -17,7 +17,6 @@ ROOT = Path(__file__).parent
 ROUTES_DIR = ROOT / "Routes"
 TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.csv"
 BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
-PRESSURE_BASELINE_CSV = ROOT / "data" / "wolf_tooth_baseline.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
 # Whitepaper: GitHub Pages site (serves docs/index.html + WHITEPAPER.md).
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
@@ -319,37 +318,13 @@ def estimate_pressure(width_mm: float, weight_kg: float, speed_tier: str, roughn
     roughness_drop = roughness * 1.2
 
     base_center = 36.0 + speed_adj + weight_adj + width_adj - roughness_drop
-    front = base_center - 1.5
+    front = base_center - 1.2
     rear = base_center + 1.0
 
     # Practical clamp range for tubeless gravel/xc setups.
     front = max(17.0, min(42.0, front))
     rear = max(19.0, min(45.0, rear))
     return round(front, 1), round(rear, 1)
-
-
-def load_pressure_baseline(path: Path) -> List[Dict[str, float]]:
-    if not path.exists():
-        return []
-    rows: List[Dict[str, float]] = []
-    with path.open("r", newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if not row:
-                continue
-            try:
-                rows.append(
-                    {
-                        "terrain_class": float((row.get("terrain_class") or "").strip()),
-                        "weight_kg": float((row.get("weight_kg") or "").strip()),
-                        "width_mm": float((row.get("width_mm") or "").strip()),
-                        "rear_psi": float((row.get("rear_psi") or "").strip()),
-                        "front_psi": float((row.get("front_psi") or "").strip()),
-                    }
-                )
-            except ValueError:
-                continue
-    return rows
 
 
 def load_tire_mass_overrides(path: Path) -> Dict[str, float]:
@@ -369,53 +344,8 @@ def load_tire_mass_overrides(path: Path) -> Dict[str, float]:
     return values
 
 
-def map_roughness_to_terrain_class(roughness: float) -> int:
-    # Coarse mapping into Wolf Tooth-style terrain classes.
-    if roughness <= 0.45:
-        return 4  # pavement-biased
-    if roughness <= 1.6:
-        return 2  # hardpack / mixed
-    return 3  # rough / rocks
-
-
-def estimate_pressure_from_baseline(
-    width_mm: float,
-    weight_kg: float,
-    terrain_class: int,
-    baseline_rows: List[Dict[str, float]],
-) -> Tuple[float, float]:
-    # Weighted nearest-neighbor interpolation over (terrain, weight, width).
-    candidates = [r for r in baseline_rows if int(round(r["terrain_class"])) == terrain_class]
-    if not candidates:
-        candidates = baseline_rows
-    if not candidates:
-        raise ValueError("No baseline rows available.")
-
-    scored = []
-    for r in candidates:
-        d_weight = abs(r["weight_kg"] - weight_kg) / 10.0
-        d_width = abs(r["width_mm"] - width_mm) / 5.0
-        d_terrain = abs(r["terrain_class"] - terrain_class) * 1.5
-        dist = max(0.05, d_weight + d_width + d_terrain)
-        scored.append((dist, r))
-    scored.sort(key=lambda x: x[0])
-    neighbors = scored[: min(4, len(scored))]
-
-    total_w = 0.0
-    front = 0.0
-    rear = 0.0
-    for dist, row in neighbors:
-        w = 1.0 / dist
-        total_w += w
-        front += w * row["front_psi"]
-        rear += w * row["rear_psi"]
-    front /= total_w
-    rear /= total_w
-    return round(front, 1), round(rear, 1)
-
-
 def speed_tier_from_avg_mph(mph: float) -> str:
-    """Legacy coarse tiers for heuristic pressure fallback when no baseline CSV."""
+    """Legacy coarse tiers used in the heuristic pressure model."""
     if mph >= 23.0:
         return "pro"
     if mph < 18.0:
@@ -809,7 +739,6 @@ def main() -> None:
             tires = mtb_only
             st.info(f"Leadville filter: showing **MTB tires only** (≥ {MTB_MIN_WIDTH_IN:.1f}\" width).")
     segments = load_segments(route_csv)
-    baseline_rows = load_pressure_baseline(PRESSURE_BASELINE_CSV)
     mass_overrides = load_tire_mass_overrides(TIRE_MASS_CSV)
     route_stats = summarize_route(route_csv)
     route_gpx = find_event_gpx(route_csv)
@@ -854,15 +783,8 @@ def main() -> None:
     winner = ranked[0]
     winner_width = winner["width_mm"]
     roughness = route_roughness_score(segments)
-    terrain_class = map_roughness_to_terrain_class(roughness)
-    if baseline_rows:
-        front_psi, rear_psi = estimate_pressure_from_baseline(
-            winner_width, weight_kg, terrain_class, baseline_rows
-        )
-        pressure_source = "Wolf Tooth baseline lookup/interpolation"
-    else:
-        front_psi, rear_psi = estimate_pressure(winner_width, weight_kg, speed_tier, roughness)
-        pressure_source = "Heuristic fallback (add baseline CSV rows to switch)"
+    front_psi, rear_psi = estimate_pressure(winner_width, weight_kg, speed_tier, roughness)
+    pressure_source = "Heuristic model"
     winner_rr_watts = winner["rr_watts"]
     winner_aero_penalty = winner["aero_penalty_watts"]
     winner_total_watts = winner["total_watts"]
@@ -922,12 +844,7 @@ def main() -> None:
     for idx, result in enumerate(ranked[:top_n], start=1):
         width_text = f"{result['width_mm']:.1f}"
         tire_width = result["width_mm"]
-        if baseline_rows:
-            f_psi, r_psi = estimate_pressure_from_baseline(
-                tire_width, weight_kg, terrain_class, baseline_rows
-            )
-        else:
-            f_psi, r_psi = estimate_pressure(tire_width, weight_kg, speed_tier, roughness)
+        f_psi, r_psi = estimate_pressure(tire_width, weight_kg, speed_tier, roughness)
         rows.append(
             {
                 "Rank": idx,
