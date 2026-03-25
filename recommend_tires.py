@@ -16,6 +16,9 @@ SURFACE_TO_COL = {
 
 ABOVE_CATEGORY_FLAG_COL = "Above Category"
 VALID_SURFACES = {"road", "cat1", "cat2", "cat3", "above"}
+ABOVE_CATEGORY_MTB_ONLY_THRESHOLD_MI = 2.0
+MTB_MIN_WIDTH_IN = 2.2
+MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
 
 # Route segment CSVs use miles for segment_start / segment_end / distance columns.
 MI_TO_KM = 1.60934
@@ -344,6 +347,11 @@ def score_tires(
     return sorted(results, key=lambda x: x.total_score)
 
 
+def above_distance_mi(segments: List[Segment]) -> float:
+    km = sum(s.distance_km for s in segments if s.surface == "above")
+    return km * 0.621371
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Recommend gravel race tires using CRR data and route segment weighting."
@@ -382,6 +390,14 @@ def main() -> None:
     brr_path = Path(args.brr_csv)
     tires = load_tires_with_optional_brr(tires_path, brr_path)
     segments = load_segments(route_path)
+    above_mi = above_distance_mi(segments)
+    if above_mi > ABOVE_CATEGORY_MTB_ONLY_THRESHOLD_MI:
+        mtb_only = [t for t in tires if (t.get("width_mm") or 0.0) >= MTB_MIN_WIDTH_MM]
+        if mtb_only:
+            tires = mtb_only
+            print(
+                f"Note: route has {above_mi:.1f} mi tagged 'above' → restricting to MTB tires (≥ {MTB_MIN_WIDTH_IN:.1f}\")."
+            )
     scored = score_tires(tires, segments, args.early_boost)
 
     if not scored:

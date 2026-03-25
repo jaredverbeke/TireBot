@@ -35,6 +35,7 @@ AERO_EXCLUDE_STEEP_CLIMB_GRADE = 0.07  # above ~7% → "large climb", aero negle
 
 MTB_MIN_WIDTH_IN = 2.2
 MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
+ABOVE_CATEGORY_MTB_ONLY_THRESHOLD_MI = 2.0
 
 # Rough-surface impedance penalty (tunable). Units: adds CRR-equivalent to route_score.
 IMPEDANCE_GAMMA = 2.2
@@ -57,6 +58,10 @@ RISK_SHORT_CAT3_MED_MAX_MM = 34.5
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
+
+
+def above_distance_mi(segments: List[Segment]) -> float:
+    return km_to_mi(sum(s.distance_km for s in segments if s.surface == "above"))
 
 
 def cat3_distance_mi(segments: List[Segment]) -> float:
@@ -1011,6 +1016,16 @@ def main() -> None:
             tires = mtb_only
             st.info(f"Leadville filter: showing **MTB tires only** (≥ {MTB_MIN_WIDTH_IN:.1f}\" width).")
     segments = load_segments(route_csv)
+
+    above_mi = above_distance_mi(segments)
+    if above_mi > ABOVE_CATEGORY_MTB_ONLY_THRESHOLD_MI:
+        mtb_only = [t for t in tires if (t.get("width_mm") or 0.0) >= MTB_MIN_WIDTH_MM]
+        if mtb_only:
+            tires = mtb_only
+            st.info(
+                f"Above Category filter: route has **{above_mi:.1f} mi** tagged `above` → recommending **MTB tires only** (≥ {MTB_MIN_WIDTH_IN:.1f}\")."
+            )
+
     mass_overrides = load_tire_mass_overrides(TIRE_MASS_CSV)
     route_stats = summarize_route(route_csv)
     route_gpx = find_event_gpx(route_csv)
