@@ -722,33 +722,6 @@ def main() -> None:
                 key="tirebot_segment_template_dl",
             )
 
-    show_first_90 = st.checkbox(
-        "Find best tire for the race start",
-        value=False,
-        key="tirebot_show_race_start",
-        help="Pick an early-race time window (minutes) and re-rank tires on just that initial portion of the route.",
-    )
-    race_start_minutes = st.slider(
-        "Race start window (minutes)",
-        min_value=30,
-        max_value=90,
-        value=90,
-        step=5,
-        disabled=not show_first_90,
-        key="tirebot_race_start_minutes",
-        help="How much of the route to consider for the start-of-race recommendation.",
-    )
-    early_speed_mph = st.slider(
-        "Race start speed (mph)",
-        min_value=10.0,
-        max_value=40.0,
-        value=23.0,
-        step=0.5,
-        disabled=not show_first_90,
-        key="tirebot_race_start_speed_mph",
-        help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
-    )
-
     with st.form("tirebot_inputs"):
         i1, i2 = st.columns(2)
         route_options = ["Pick a Route/Event"] + list(events.keys())
@@ -773,6 +746,32 @@ def main() -> None:
         with st.expander("Advanced options", expanded=False):
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
             top_n = st.slider("Top tire options", min_value=3, max_value=20, value=5, step=1)
+
+        st.markdown("**Race start tire** (optional)")
+        show_first_90 = st.checkbox(
+            "Find best tire for the race start",
+            value=False,
+            key="tirebot_show_race_start",
+            help="Pick an early-race time window (minutes) and re-rank tires on just that initial portion of the route.",
+        )
+        race_start_minutes = st.slider(
+            "Race start window (minutes)",
+            min_value=30,
+            max_value=90,
+            value=90,
+            step=5,
+            key="tirebot_race_start_minutes",
+            help="How much of the route to consider for the start-of-race recommendation.",
+        )
+        early_speed_mph = st.slider(
+            "Race start speed (mph)",
+            min_value=10.0,
+            max_value=40.0,
+            value=23.0,
+            step=0.5,
+            key="tirebot_race_start_speed_mph",
+            help="Used only for the race-start view. This speed determines the distance cutoff and the watts in that early ranking.",
+        )
 
         submitted = st.form_submit_button("Generate recommendation", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
