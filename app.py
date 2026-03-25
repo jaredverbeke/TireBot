@@ -1298,7 +1298,7 @@ def main() -> None:
             )
 
     st.markdown('<div class="tb-divider-label">Performance over course</div>', unsafe_allow_html=True)
-    st.subheader("Top 3 performance vs course distance")
+    st.subheader("Top 5 performance vs course distance")
     st.caption(
         "Chart shows **cumulative time difference** vs the current winner (0 line) as the route progresses. "
         "This is a simplified model using segment surfaces + impedance and converts watts→time using an estimated rider aero/drivetrain baseline."
@@ -1306,8 +1306,8 @@ def main() -> None:
 
     try:
         tire_by_name = {str(t.get("tire_name", "")): t for t in tires}
-        top3 = ranked[: min(3, len(ranked))]
-        if len(top3) >= 2 and segments:
+        top5 = ranked[: min(5, len(ranked))]
+        if len(top5) >= 2 and segments:
             ordered = sorted(segments, key=lambda s: s.race_position)
             speed_mps = avg_speed_mph * 0.44704
             system_mass_kg = weight_kg + 9.0
@@ -1334,7 +1334,7 @@ def main() -> None:
 
             # Precompute per-tire constants.
             per_tire = {}
-            for r in top3:
+            for r in top5:
                 t = tire_by_name.get(str(r["tire_name"]))
                 if not t:
                     continue
@@ -1354,7 +1354,7 @@ def main() -> None:
                     "mass_w": mass_w,
                 }
 
-            winner_name = str(top3[0]["tire_name"])
+            winner_name = str(top5[0]["tire_name"])
             if winner_name in per_tire and len(per_tire) >= 2:
                 cumulative_mi = 0.0
                 cumulative_delta_s = {name: 0.0 for name in per_tire.keys()}
