@@ -3,6 +3,7 @@ import csv
 import html
 import math
 import re
+import subprocess
 import urllib.parse
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -38,6 +39,14 @@ MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
+
+
+def current_git_sha_short() -> Optional[str]:
+    try:
+        sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT), text=True).strip()
+        return sha or None
+    except Exception:
+        return None
 
 
 def inject_styles() -> None:
@@ -686,6 +695,7 @@ def summarize_route(path: Path) -> Dict[str, float]:
 def main() -> None:
     st.set_page_config(page_title="TireBot", page_icon="🚴", layout="wide")
     inject_styles()
+    sha = current_git_sha_short()
     st.markdown(
         """
 <div class="tb-hero">
@@ -701,6 +711,8 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
+    if sha:
+        st.caption(f"Build: `{sha}`")
     st.markdown('<div class="tb-card">', unsafe_allow_html=True)
     st.markdown('<p class="tb-section-label">Science &amp; assumptions</p>', unsafe_allow_html=True)
     st.markdown("### Methodology")
@@ -787,7 +799,12 @@ def main() -> None:
     route_csv = events[event_label]
     tires = load_tires_with_optional_brr(TIRES_CSV, BRR_CRR_CSV)
     if is_leadville_route(route_csv, event_label):
-        mtb_only = [t for t in tires if (t.get("width_mm") or 0.0) >= MTB_MIN_WIDTH_MM]
+        mtb_only = [
+            t
+            for t in tires
+            if (t.get("width_mm") or 0.0) >= MTB_MIN_WIDTH_MM
+            and "corsa" not in str(t.get("tire_name", "")).lower()
+        ]
         if mtb_only:
             tires = mtb_only
             st.info(f"Leadville filter: showing **MTB tires only** (≥ {MTB_MIN_WIDTH_IN:.1f}\" width).")
