@@ -230,245 +230,193 @@ def inject_styles() -> None:
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
     :root {
-        --tb-accent: #2563eb;
-        --tb-accent-2: #ff2d7a;
-        --tb-accent-3: #34d399;
-        --tb-accent-soft: rgba(37, 99, 235, 0.10);
-        --tb-border: rgba(11, 18, 32, 0.12);
-        --tb-text: #0b1220;
-        --tb-text-dim: rgba(11, 18, 32, 0.68);
+        /* MidSouth-style vibe: bold ink + loud accents + lots of white/cream. */
+        --tb-ink: #0b0b0f;
+        --tb-paper: #fff7e6;
         --tb-surface: #ffffff;
-        --tb-surface-2: #f7f6ff;
-        --tb-ink: rgba(11, 18, 32, 0.86);
+        --tb-surface-2: #fff2cc;
+        --tb-border: rgba(11, 11, 15, 0.90);
+
+        /* pulled from MidSouth brand imagery (yellow/blue/green/orange) */
+        --tb-yellow: #FFD400;
+        --tb-blue: #0B84F3;
+        --tb-green: #1F6F4B;
+        --tb-orange: #F26A2E;
+
+        --tb-accent: var(--tb-yellow);
+        --tb-accent-soft: rgba(255, 212, 0, 0.18);
+        --tb-text: #0b0b0f;
+        --tb-text-dim: rgba(11, 11, 15, 0.66);
     }
+
     .block-container {
-        padding-top: 1.25rem;
+        padding-top: 1.15rem;
         padding-bottom: 3rem;
         max-width: 1120px;
     }
+
     .stApp {
         font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
         letter-spacing: 0.01em;
+        background: var(--tb-paper);
     }
-    h1, h2, h3 {
-        font-family: "Space Grotesk", "Outfit", ui-sans-serif, system-ui, sans-serif !important;
-        letter-spacing: -0.02em;
-    }
-    /* playful, not-a-copy background treatment */
+
+    /* paper texture + sticker splats (no assets, no copy) */
     .stApp::before {
         content: "";
         position: fixed;
         inset: 0;
         pointer-events: none;
         background:
-            radial-gradient(900px 600px at 10% 10%, rgba(255, 45, 122, 0.10) 0%, transparent 55%),
-            radial-gradient(700px 520px at 90% 15%, rgba(37, 99, 235, 0.12) 0%, transparent 58%),
-            radial-gradient(900px 640px at 65% 92%, rgba(52, 211, 153, 0.10) 0%, transparent 62%),
-            repeating-linear-gradient(135deg, rgba(11, 18, 32, 0.030) 0px, rgba(11, 18, 32, 0.030) 1px, transparent 1px, transparent 10px);
+            radial-gradient(900px 520px at 10% 12%, rgba(255, 212, 0, 0.16) 0%, transparent 60%),
+            radial-gradient(760px 520px at 92% 10%, rgba(11, 132, 243, 0.12) 0%, transparent 60%),
+            radial-gradient(900px 640px at 70% 92%, rgba(242, 106, 46, 0.10) 0%, transparent 62%),
+            repeating-linear-gradient(135deg, rgba(11, 11, 15, 0.035) 0px, rgba(11, 11, 15, 0.035) 1px, transparent 1px, transparent 9px);
         opacity: 1;
         z-index: 0;
     }
-    .stApp > header, .stApp > div {
-        position: relative;
-        z-index: 1;
+    .stApp > header, .stApp > div { position: relative; z-index: 1; }
+
+    h1, h2, h3 {
+        font-family: "Space Grotesk", "Outfit", ui-sans-serif, system-ui, sans-serif !important;
+        letter-spacing: -0.02em;
+        color: var(--tb-ink);
     }
-    /* Metric tiles (Streamlit versions use stMetric or metric-container) */
-    [data-testid="stMetric"],
-    [data-testid="metric-container"] {
-        background: var(--tb-surface) !important;
-        border: 1px solid var(--tb-border) !important;
-        border-radius: 16px !important;
-        padding: 0.65rem 0.85rem !important;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
-    }
-    [data-testid="stMetric"] label,
-    [data-testid="metric-container"] label {
-        color: var(--tb-text-dim) !important;
-        font-size: 0.78rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        font-weight: 600 !important;
-    }
-    [data-testid="stMetricValue"],
-    [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        font-size: 1.35rem !important;
-        font-weight: 600 !important;
-    }
-    /* Expanders */
-    [data-testid="stExpander"] details {
-        border: 1px dashed rgba(11, 18, 32, 0.22) !important;
-        border-radius: 16px !important;
-        background: color-mix(in srgb, var(--tb-surface-2) 88%, white 12%) !important;
-    }
-    /* Primary CTA */
-    .stButton > button[kind="primary"] {
-        font-weight: 700;
-        border-radius: 999px;
-        padding: 0.55rem 1.05rem;
-        border: 1px solid rgba(11, 18, 32, 0.14) !important;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 1) 0%, rgba(255, 45, 122, 1) 100%) !important;
-        box-shadow: 0 14px 34px rgba(37, 99, 235, 0.20);
-        transform: translateY(0);
-        transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
-    }
-    .stButton > button[kind="primary"]:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 18px 44px rgba(37, 99, 235, 0.24);
-        filter: saturate(1.05);
-    }
-    .tb-eyebrow {
-        font-size: 0.72rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        color: rgba(11, 18, 32, 0.62);
-        margin: 0 0 0.35rem;
-    }
-    .tb-hero {
-        position: relative;
-        overflow: hidden;
-        background:
-            radial-gradient(900px 520px at 5% 5%, rgba(255, 45, 122, 0.16) 0%, transparent 60%),
-            radial-gradient(820px 540px at 95% 0%, rgba(37, 99, 235, 0.16) 0%, transparent 60%),
-            radial-gradient(900px 620px at 60% 120%, rgba(52, 211, 153, 0.12) 0%, transparent 62%),
-            linear-gradient(135deg, #ffffff 0%, #fff8fb 42%, #f4f7ff 100%);
-        border-radius: 22px;
-        padding: 1.4rem 1.55rem 1.55rem;
-        color: var(--tb-text);
-        margin-bottom: 1.15rem;
-        border: 2px solid rgba(11, 18, 32, 0.12);
-        box-shadow:
-            0 0 0 1px rgba(255, 45, 122, 0.05) inset,
-            0 18px 55px rgba(15, 23, 42, 0.10);
-    }
-    .tb-hero::after {
-        content: "";
-        position: absolute;
-        inset: -40px -60px auto auto;
-        width: 220px;
-        height: 220px;
-        background: radial-gradient(circle at 30% 30%, rgba(255, 45, 122, 0.55), rgba(255, 45, 122, 0.0) 62%);
-        transform: rotate(18deg);
-        opacity: 0.35;
-        pointer-events: none;
-    }
-    .tb-hero h1 {
-        font-size: clamp(1.45rem, 3vw, 1.85rem);
-        line-height: 1.15;
-        margin: 0;
-        font-weight: 700;
-    }
-    .tb-hero p {
-        margin: 0.55rem 0 0;
-        color: rgba(11, 18, 32, 0.72);
-        font-size: 1rem;
-        line-height: 1.5;
-        max-width: 36rem;
-    }
-    .tb-chip {
-        display: inline-block;
-        padding: 0.3rem 0.65rem;
-        border-radius: 999px;
-        background: rgba(11, 18, 32, 0.04);
-        border: 1px dashed rgba(11, 18, 32, 0.22);
-        font-size: 0.78rem;
-        font-weight: 650;
-        margin-right: 0.45rem;
-        margin-top: 0.35rem;
-        color: rgba(11, 18, 32, 0.78);
-    }
-    .tb-chip:nth-child(3n+1) { border-color: rgba(37, 99, 235, 0.40); }
-    .tb-chip:nth-child(3n+2) { border-color: rgba(255, 45, 122, 0.40); }
-    .tb-chip:nth-child(3n+3) { border-color: rgba(52, 211, 153, 0.42); }
+
+    /* cards use thick ink outline + offset shadow */
     .tb-card {
-        border: 2px solid rgba(11, 18, 32, 0.10);
-        border-radius: 20px;
+        border: 3px solid var(--tb-ink);
+        border-radius: 18px;
         background: var(--tb-surface);
         padding: 1.05rem 1.2rem;
         margin-bottom: 1rem;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        box-shadow: 6px 6px 0 rgba(11, 11, 15, 0.22);
     }
-    .tb-card h3, .tb-card [data-testid="stHeader"] {
-        margin-top: 0 !important;
-    }
+    .tb-card h3, .tb-card [data-testid="stHeader"] { margin-top: 0 !important; }
+
     .tb-section-label {
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: rgba(11, 18, 32, 0.70);
-        margin: 0 0 0.2rem;
-    }
-    .tb-muted {
-        color: var(--tb-text-dim);
-        font-size: 0.9rem;
-        line-height: 1.55;
-    }
-    .tb-divider-label {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin: 1.5rem 0 1rem;
-        font-size: 0.75rem;
-        font-weight: 700;
+        font-size: 0.72rem;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.14em;
-        color: var(--tb-text-dim);
+        color: var(--tb-ink);
+        margin: 0 0 0.2rem;
     }
-    .tb-divider-label::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: linear-gradient(90deg, var(--tb-border), transparent);
+    .tb-muted { color: var(--tb-text-dim); font-size: 0.9rem; line-height: 1.55; }
+
+    /* hero becomes a bold banner */
+    .tb-hero {
+        border: 4px solid var(--tb-ink);
+        border-radius: 22px;
+        background: linear-gradient(135deg, #ffffff 0%, rgba(255, 212, 0, 0.18) 45%, rgba(11, 132, 243, 0.10) 100%);
+        box-shadow: 10px 10px 0 rgba(11, 11, 15, 0.22);
+        padding: 1.35rem 1.55rem 1.55rem;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1.15rem;
     }
-    .tb-rec-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 0.85rem 1rem;
-        margin: 0.5rem 0 0.75rem;
+    .tb-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: rgba(11, 11, 15, 0.72);
+        margin: 0 0 0.35rem;
     }
-    .tb-rec-item {
-        padding: 0.65rem 0.75rem;
-        border-radius: 10px;
-        background: var(--tb-surface-2);
-        border: 1px solid rgba(37, 99, 235, 0.14);
+    .tb-hero h1 { font-size: clamp(1.55rem, 3.2vw, 2.05rem); margin: 0; font-weight: 800; }
+    .tb-hero p { margin: 0.55rem 0 0; color: rgba(11, 11, 15, 0.76); font-size: 1.02rem; line-height: 1.5; max-width: 44rem; }
+
+    /* chips become sticker labels */
+    .tb-chip {
+        display: inline-block;
+        padding: 0.35rem 0.70rem;
+        border-radius: 999px;
+        border: 2px solid var(--tb-ink);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-right: 0.45rem;
+        margin-top: 0.35rem;
+        color: var(--tb-ink);
+        box-shadow: 3px 3px 0 rgba(11, 11, 15, 0.18);
+        background: var(--tb-yellow);
+        transform: rotate(-1deg);
     }
-    .tb-rec-k {
-        display: block;
-        font-size: 0.68rem;
-        font-weight: 600;
+    .tb-chip:nth-child(4n+1) { background: var(--tb-yellow); }
+    .tb-chip:nth-child(4n+2) { background: rgba(11, 132, 243, 0.22); }
+    .tb-chip:nth-child(4n+3) { background: rgba(242, 106, 46, 0.22); }
+    .tb-chip:nth-child(4n+4) { background: rgba(31, 111, 75, 0.18); }
+
+    /* buttons: ink outline + offset shadow, like a poster button */
+    .stButton > button[kind="primary"] {
+        font-weight: 900;
+        border-radius: 999px;
+        padding: 0.58rem 1.08rem;
+        border: 3px solid var(--tb-ink) !important;
+        color: var(--tb-ink) !important;
+        background: var(--tb-yellow) !important;
+        box-shadow: 5px 5px 0 rgba(11, 11, 15, 0.22);
+        transform: translate(0, 0);
+        transition: transform 90ms ease, box-shadow 90ms ease, filter 90ms ease;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 7px 7px 0 rgba(11, 11, 15, 0.22);
+        filter: saturate(1.08);
+    }
+
+    /* expanders: ink outline */
+    [data-testid="stExpander"] details {
+        border: 3px solid var(--tb-ink) !important;
+        border-radius: 18px !important;
+        background: rgba(255, 255, 255, 0.92) !important;
+    }
+
+    /* metrics: same ink-outline system */
+    [data-testid="stMetric"],
+    [data-testid="metric-container"] {
+        background: var(--tb-surface) !important;
+        border: 3px solid var(--tb-ink) !important;
+        border-radius: 18px !important;
+        padding: 0.7rem 0.9rem !important;
+        box-shadow: 6px 6px 0 rgba(11, 11, 15, 0.18);
+    }
+    [data-testid="stMetric"] label,
+    [data-testid="metric-container"] label {
+        color: rgba(11, 11, 15, 0.70) !important;
+        font-size: 0.75rem !important;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--tb-text-dim);
-        margin-bottom: 0.25rem;
+        font-weight: 800 !important;
     }
-    .tb-rec-v {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--tb-text);
-        line-height: 1.35;
-        word-break: break-word;
+
+    /* recommendation grid cards */
+    .tb-rec-item {
+        padding: 0.70rem 0.80rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 2px solid var(--tb-ink);
+        box-shadow: 4px 4px 0 rgba(11, 11, 15, 0.14);
     }
+    .tb-rec-k { color: rgba(11, 11, 15, 0.72); font-weight: 800; }
+
+    /* dataframes: ink outline */
     [data-testid="stDataFrame"] {
-        border: 2px solid rgba(11, 18, 32, 0.10);
+        border: 3px solid var(--tb-ink);
         border-radius: 18px;
         overflow: hidden;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        box-shadow: 8px 8px 0 rgba(11, 11, 15, 0.18);
+        background: white;
     }
     /* Make tables more compact and allow header wrapping */
-    [data-testid="stDataFrame"] * {
-        font-size: 0.86rem;
-    }
+    [data-testid="stDataFrame"] * { font-size: 0.86rem; }
     [data-testid="stDataFrame"] th {
         white-space: normal !important;
         line-height: 1.1 !important;
         padding-top: 0.35rem !important;
         padding-bottom: 0.35rem !important;
     }
-    [data-testid="stDataFrame"] td {
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
-    }
+    [data-testid="stDataFrame"] td { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
 </style>
         """,
         unsafe_allow_html=True,
@@ -980,9 +928,9 @@ def main() -> None:
     st.markdown(
         """
 <div class="tb-hero">
-  <p class="tb-eyebrow">Gravel · MTB · race day nerd stuff</p>
-  <h1>TireBot — your weird little tire scientist</h1>
-  <p>Pick a route. Pick a speed. TireBot will argue with itself and hand you a tire, pressure, and risk call.</p>
+  <p class="tb-eyebrow">Gravel · MTB · race day setup</p>
+  <h1>TireBot Race Setup Advisor</h1>
+  <p>Route-aware tire, pressure, and risk recommendations for race day.</p>
   <div style="margin-top: 0.85rem;">
     <span class="tb-chip">Route-aware</span>
     <span class="tb-chip">CRR-based</span>
