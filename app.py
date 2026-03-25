@@ -33,7 +33,7 @@ RISK_LABELS_PATH = ROOT / "data" / "risk_labels.csv"
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
 
 FEEDBACK_EMAIL = "jaredverbeke@gmail.com"
-STRIPE_DONATE_URL = "https://buy.stripe.com/test_fZueVf4O6eqleWw0jqcs800"
+STRIPE_DONATE_URL = "https://buy.stripe.com/eVq5kF933eDd7NN6bQ7Re00"
 
 # Segment CSVs list distances in miles; summarize_route also reports miles.
 KM_TO_MI = 0.621371
