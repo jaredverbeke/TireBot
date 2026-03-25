@@ -56,13 +56,13 @@ def inject_styles() -> None:
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     :root {
-        --tb-accent: #f97316;
-        --tb-accent-soft: rgba(249, 115, 22, 0.14);
-        --tb-border: rgba(249, 115, 22, 0.22);
-        --tb-text: #f1f5f9;
-        --tb-text-dim: #94a3b8;
-        --tb-surface: rgba(20, 27, 45, 0.72);
-        --tb-surface-2: rgba(15, 23, 42, 0.55);
+        --tb-accent: #2563eb;
+        --tb-accent-soft: rgba(37, 99, 235, 0.10);
+        --tb-border: rgba(37, 99, 235, 0.18);
+        --tb-text: #0b1220;
+        --tb-text-dim: rgba(11, 18, 32, 0.68);
+        --tb-surface: #ffffff;
+        --tb-surface-2: #f6f7fb;
     }
     .block-container {
         padding-top: 1.25rem;
@@ -84,7 +84,7 @@ def inject_styles() -> None:
         border: 1px solid var(--tb-border) !important;
         border-radius: 14px !important;
         padding: 0.65rem 0.85rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
     }
     [data-testid="stMetric"] label,
     [data-testid="metric-container"] label {
@@ -110,31 +110,31 @@ def inject_styles() -> None:
         font-weight: 600;
         border-radius: 10px;
         padding: 0.5rem 1rem;
-        box-shadow: 0 2px 12px rgba(249, 115, 22, 0.25);
+        box-shadow: 0 2px 14px rgba(37, 99, 235, 0.22);
     }
     .tb-eyebrow {
         font-size: 0.72rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.14em;
-        color: rgba(253, 186, 116, 0.95);
+        color: rgba(37, 99, 235, 0.92);
         margin: 0 0 0.35rem;
     }
     .tb-hero {
         position: relative;
         overflow: hidden;
         background:
-            radial-gradient(ellipse 90% 120% at 100% 0%, rgba(249, 115, 22, 0.18) 0%, transparent 55%),
-            radial-gradient(ellipse 70% 80% at 0% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-            linear-gradient(125deg, #0f172a 0%, #1c1917 42%, #292524 100%);
+            radial-gradient(ellipse 90% 120% at 100% 0%, rgba(37, 99, 235, 0.18) 0%, transparent 55%),
+            radial-gradient(ellipse 70% 80% at 0% 100%, rgba(99, 102, 241, 0.10) 0%, transparent 50%),
+            linear-gradient(135deg, #ffffff 0%, #f5f7ff 55%, #ffffff 100%);
         border-radius: 18px;
         padding: 1.35rem 1.5rem 1.45rem;
         color: var(--tb-text);
         margin-bottom: 1.15rem;
         border: 1px solid var(--tb-border);
         box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-            0 20px 50px rgba(0, 0, 0, 0.45);
+            0 0 0 1px rgba(37, 99, 235, 0.06) inset,
+            0 18px 50px rgba(15, 23, 42, 0.10);
     }
     .tb-hero h1 {
         font-size: clamp(1.45rem, 3vw, 1.85rem);
@@ -144,7 +144,7 @@ def inject_styles() -> None:
     }
     .tb-hero p {
         margin: 0.55rem 0 0;
-        color: #cbd5e1;
+        color: rgba(11, 18, 32, 0.72);
         font-size: 1rem;
         line-height: 1.5;
         max-width: 36rem;
@@ -154,12 +154,12 @@ def inject_styles() -> None:
         padding: 0.3rem 0.65rem;
         border-radius: 999px;
         background: var(--tb-accent-soft);
-        border: 1px solid rgba(249, 115, 22, 0.42);
+        border: 1px solid rgba(37, 99, 235, 0.35);
         font-size: 0.78rem;
         font-weight: 500;
         margin-right: 0.45rem;
         margin-top: 0.35rem;
-        color: #fed7aa;
+        color: rgba(37, 99, 235, 0.92);
     }
     .tb-card {
         border: 1px solid var(--tb-border);
@@ -167,8 +167,7 @@ def inject_styles() -> None:
         background: var(--tb-surface);
         padding: 1.05rem 1.2rem;
         margin-bottom: 1rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
-        backdrop-filter: blur(8px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
     }
     .tb-card h3, .tb-card [data-testid="stHeader"] {
         margin-top: 0 !important;
@@ -212,8 +211,8 @@ def inject_styles() -> None:
     .tb-rec-item {
         padding: 0.65rem 0.75rem;
         border-radius: 10px;
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(148, 163, 184, 0.12);
+        background: var(--tb-surface-2);
+        border: 1px solid rgba(37, 99, 235, 0.14);
     }
     .tb-rec-k {
         display: block;
@@ -235,7 +234,7 @@ def inject_styles() -> None:
         border: 1px solid var(--tb-border);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
     }
     /* Make tables more compact and allow header wrapping */
     [data-testid="stDataFrame"] * {
