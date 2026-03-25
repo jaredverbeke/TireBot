@@ -35,6 +35,14 @@ AERO_EXCLUDE_STEEP_CLIMB_GRADE = 0.07  # above ~7% → "large climb", aero negle
 MTB_MIN_WIDTH_IN = 2.2
 MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
 
+# Rough-surface impedance penalty (tunable). Units: adds CRR-equivalent to route_score.
+IMPEDANCE_GAMMA = 2.2
+IMPEDANCE_K_BY_SURFACE = {"road": 0.0, "cat1": 0.00018, "cat2": 0.00055, "cat3": 0.00110}
+# Target stiffness proxy by surface (psi*mm/kg). Rougher surfaces want lower stiffness (more compliance).
+IMPEDANCE_TARGET_STIFFNESS = {"road": 26.0, "cat1": 15.0, "cat2": 13.5, "cat3": 12.0}
+# Support floor: narrow tires under heavier riders require minimum pressure.
+SUPPORT_PSI_FACTOR = 16.0  # psi ≈ factor * (weight_kg / width_mm)
+
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
@@ -331,6 +339,8 @@ def estimate_pressure(width_mm: float, weight_kg: float, speed_tier: str, roughn
     roughness_drop = roughness * 1.2
 
     base_center = 36.0 + speed_adj + weight_adj + width_adj - roughness_drop
+    support_floor = SUPPORT_PSI_FACTOR * (weight_kg / max(1.0, width_mm))
+    base_center = max(base_center, support_floor)
     front = base_center - 1.2
     rear = base_center + 1.0
 
@@ -436,6 +446,56 @@ def estimate_rr_watts(total_score: float, weighted_distance: float, speed_mph: f
     speed_mps = speed_mph * 0.44704
     watts = effective_crr * system_mass_kg * 9.80665 * speed_mps
     return round(watts, 1)
+
+
+def estimate_rr_watts_raw(total_score: float, weighted_distance: float, speed_mph: float, weight_kg: float) -> float:
+    if weighted_distance <= 0:
+        return 0.0
+    effective_crr = total_score / weighted_distance
+    system_mass_kg = weight_kg + 9.0
+    speed_mps = speed_mph * 0.44704
+    return effective_crr * system_mass_kg * 9.80665 * speed_mps
+
+
+def impedance_penalty_route_score(
+    segments: List[Segment],
+    early_boost: float,
+    width_mm: float,
+    weight_kg: float,
+    speed_tier: str,
+) -> float:
+    """Extra route_score to model rough-surface impedance losses.
+
+    Uses a simple stiffness proxy:
+      stiffness ~ (avg_psi * width_mm) / rider_weight_kg
+
+    On rougher surfaces, being too stiff adds CRR-equivalent penalty.
+    """
+    if not segments or width_mm <= 0 or weight_kg <= 0:
+        return 0.0
+
+    penalty = 0.0
+    for seg in segments:
+        k = IMPEDANCE_K_BY_SURFACE.get(seg.surface, 0.0)
+        target = IMPEDANCE_TARGET_STIFFNESS.get(seg.surface, 0.0)
+        if k <= 0 or target <= 0:
+            continue
+
+        # Segment-specific heuristic pressure: rougher segments allow/encourage lower PSI.
+        roughness_surface = {"road": 0.0, "cat1": 0.9, "cat2": 1.8, "cat3": 3.0}.get(seg.surface, 1.2)
+        f_psi, r_psi = estimate_pressure(width_mm, weight_kg, speed_tier, roughness_surface)
+        avg_psi = max(1.0, (f_psi + r_psi) / 2.0)
+
+        stiffness = (avg_psi * max(1.0, width_mm)) / max(1e-9, weight_kg)
+        if stiffness <= target:
+            continue
+
+        stiff_ratio = (stiffness / target) - 1.0
+        delta_crr = k * (stiff_ratio**IMPEDANCE_GAMMA)
+        w = phase_weight(seg.race_position, early_boost) * seg.technicality * seg.selection_risk
+        penalty += delta_crr * seg.distance_km * w
+
+    return penalty
 
 
 def estimate_aero_penalty_watts(width_mm: float, speed_mph: float) -> float:
@@ -582,13 +642,22 @@ def rank_by_fastest_total_watts(
     speed_mph: float,
     weight_kg: float,
     mass_overrides: Dict[str, float],
+    segments: Optional[List[Segment]] = None,
+    early_boost: float = 1.8,
+    speed_tier: str = "amateur",
     aero_distance_fraction: float = 1.0,
 ) -> List[Dict[str, float]]:
     frac = max(0.0, min(1.0, aero_distance_fraction))
     rows: List[Dict[str, float]] = []
     for r in ranked_by_rr:
         width_mm = r.width_mm if r.width_mm is not None else 45.0
-        rr_watts = estimate_rr_watts(r.total_score, weighted_distance, speed_mph, weight_kg)
+        impedance_score = (
+            impedance_penalty_route_score(segments, early_boost, width_mm, weight_kg, speed_tier)
+            if segments is not None
+            else 0.0
+        )
+        rr_watts = estimate_rr_watts(r.total_score + impedance_score, weighted_distance, speed_mph, weight_kg)
+        impedance_watts = round(estimate_rr_watts_raw(impedance_score, weighted_distance, speed_mph, weight_kg), 2)
         aero_penalty_watts = round(estimate_aero_penalty_watts(width_mm, speed_mph) * frac, 1)
         tire_mass_g = estimate_tire_mass_grams(width_mm, r.tire_name, mass_overrides)
         mass_penalty_watts = estimate_tire_mass_penalty_watts(
@@ -601,6 +670,7 @@ def rank_by_fastest_total_watts(
                 "width_mm": width_mm,
                 "score": round(r.total_score, 4),
                 "rr_watts": rr_watts,
+                "impedance_watts": impedance_watts,
                 "aero_penalty_watts": aero_penalty_watts,
                 "tire_mass_g": round(tire_mass_g, 0),
                 "mass_penalty_watts": mass_penalty_watts,
@@ -884,6 +954,9 @@ def main() -> None:
         avg_speed_mph,
         weight_kg,
         mass_overrides,
+        segments=segments,
+        early_boost=early_boost,
+        speed_tier=speed_tier,
         aero_distance_fraction=aero_distance_fraction,
     )
     winner = ranked[0]
@@ -958,6 +1031,7 @@ def main() -> None:
                 "Width (mm)": width_text,
                 "Route Score": result["score"],
                 "RR (W)": result["rr_watts"],
+                "Imp (W)": result.get("impedance_watts", 0.0),
                 "Aero (W)": result["aero_penalty_watts"],
                 "Tire Mass (g)": result["tire_mass_g"],
                 "Mass (W)": result["mass_penalty_watts"],
@@ -975,6 +1049,7 @@ def main() -> None:
         column_config={
             "Route Score": st.column_config.NumberColumn(format="%.4f"),
             "RR (W)": st.column_config.NumberColumn(format="%.1f W"),
+            "Imp (W)": st.column_config.NumberColumn(format="%+.1f W"),
             "Aero (W)": st.column_config.NumberColumn(format="%+.1f W"),
             "Tire Mass (g)": st.column_config.NumberColumn(format="%.0f g"),
             "Mass (W)": st.column_config.NumberColumn(format="%+.2f W"),
@@ -1004,6 +1079,9 @@ def main() -> None:
                 early_speed,
                 weight_kg,
                 mass_overrides,
+                segments=early_segments,
+                early_boost=early_boost,
+                speed_tier=early_speed_tier,
                 aero_distance_fraction=aero_distance_fraction,
             )
             early_winner = early_ranked[0]
@@ -1026,6 +1104,7 @@ def main() -> None:
                         "Tire": result["tire_name"],
                         "Width (mm)": f"{result['width_mm']:.1f}",
                     "RR (W)": result["rr_watts"],
+                    "Imp (W)": result.get("impedance_watts", 0.0),
                     "Aero (W)": result["aero_penalty_watts"],
                     "Mass (W)": result["mass_penalty_watts"],
                     "Total (W)": result["total_watts"],
