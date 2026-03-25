@@ -41,18 +41,6 @@ For each tire, TireBot uses CRR values (or interpolation) on:
 - Cat 2 Gravel
 - Cat 3 Gravel
 
-### Optional: Bicycle Rolling Resistance (BRR) overrides
-
-If you use [Bicycle Rolling Resistance](https://www.bicyclerollingresistance.com/) Pro View, you can maintain a second file:
-
-- `data/brr_crr.csv`
-
-For any row, TireBot matches `tire_name` to the primary dataset (case-insensitive, normalized spaces) and **replaces** `road` / `cat1` / `cat2` / `cat3` CRR fields where you supply a value. You can also add **new tires** that appear only in this file (missing surfaces are filled by the same interpolation rules as the primary CSV).
-
-**Important:** Enter **CRR coefficients** in the same style as the Karrasch sheet, not raw watts, unless you have converted them. Column `smooth_pavement_crr` is accepted as an alias for `road_crr`. Optional columns `brr_review_url` and `notes` are for your records; they are not used in calculations. Compliance with BRR’s terms for any data you copy or export is your responsibility.
-
-See `data/BRR_IMPORT.txt` for column definitions and fill-in tips.
-
 ### 2.2 Route segment data
 
 Each event has a segment CSV in `Routes/<Event>/`.
@@ -215,6 +203,44 @@ TireBot pressure path:
 1. Use a heuristic pressure model with tire width, rider weight, average speed, and route roughness.
 
 Pressures are presented as race-day starting points, not absolute final values.
+
+---
+
+## 5) Tire issue risk and custom model training
+
+TreadLab reports a **tire issue risk** label (**Low / Medium / High**) intended to capture puncture/handling risk for a given tire on a given route.
+
+### 5.1 Two modes: heuristic and learned
+
+- **Heuristic fallback**: if no training data exists, the app uses a simple width + rough-miles heuristic (including special handling for “Above Category” segments).
+- **Learned model (recommended)**: if training labels exist, the app predicts risk from prior labeled examples.
+
+### 5.2 What gets labeled
+
+You can label risk for any route by assigning each tire a label:
+
+- `Low`, `Medium`, or `High`
+
+These labels are stored in:
+
+- `data/risk_labels.csv`
+
+Each row includes:
+
+- `route` (path to the route segments CSV)
+- surface-mile breakdown: `road_mi`, `cat1_mi`, `cat2_mi`, `cat3_mi`, `above_mi`, `total_mi`
+- tire features: `tire_name`, `width_mm`, `tire_class`
+- target: `label`
+
+### 5.3 How predictions are made (kNN)
+
+TreadLab uses a lightweight **k-nearest-neighbors** approach:
+
+1. Build a feature vector for the current route (surface miles/mix) and the candidate tire (width + class).
+2. Find the \(k\) most similar labeled examples.
+3. Predict the label by a distance-weighted vote.
+
+This makes the risk model **universal across routes** and improves automatically as you add more labeled events.
 
 ---
 
