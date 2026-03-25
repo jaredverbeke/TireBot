@@ -227,16 +227,19 @@ def inject_styles() -> None:
         """
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
     :root {
         --tb-accent: #2563eb;
+        --tb-accent-2: #ff2d7a;
+        --tb-accent-3: #34d399;
         --tb-accent-soft: rgba(37, 99, 235, 0.10);
-        --tb-border: rgba(37, 99, 235, 0.18);
+        --tb-border: rgba(11, 18, 32, 0.12);
         --tb-text: #0b1220;
         --tb-text-dim: rgba(11, 18, 32, 0.68);
         --tb-surface: #ffffff;
-        --tb-surface-2: #f6f7fb;
+        --tb-surface-2: #f7f6ff;
+        --tb-ink: rgba(11, 18, 32, 0.86);
     }
     .block-container {
         padding-top: 1.25rem;
@@ -248,17 +251,35 @@ def inject_styles() -> None:
         letter-spacing: 0.01em;
     }
     h1, h2, h3 {
-        font-family: "Outfit", ui-sans-serif, system-ui, sans-serif !important;
+        font-family: "Space Grotesk", "Outfit", ui-sans-serif, system-ui, sans-serif !important;
         letter-spacing: -0.02em;
+    }
+    /* playful, not-a-copy background treatment */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(900px 600px at 10% 10%, rgba(255, 45, 122, 0.10) 0%, transparent 55%),
+            radial-gradient(700px 520px at 90% 15%, rgba(37, 99, 235, 0.12) 0%, transparent 58%),
+            radial-gradient(900px 640px at 65% 92%, rgba(52, 211, 153, 0.10) 0%, transparent 62%),
+            repeating-linear-gradient(135deg, rgba(11, 18, 32, 0.030) 0px, rgba(11, 18, 32, 0.030) 1px, transparent 1px, transparent 10px);
+        opacity: 1;
+        z-index: 0;
+    }
+    .stApp > header, .stApp > div {
+        position: relative;
+        z-index: 1;
     }
     /* Metric tiles (Streamlit versions use stMetric or metric-container) */
     [data-testid="stMetric"],
     [data-testid="metric-container"] {
         background: var(--tb-surface) !important;
         border: 1px solid var(--tb-border) !important;
-        border-radius: 14px !important;
+        border-radius: 16px !important;
         padding: 0.65rem 0.85rem !important;
-        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
     }
     [data-testid="stMetric"] label,
     [data-testid="metric-container"] label {
@@ -275,40 +296,61 @@ def inject_styles() -> None:
     }
     /* Expanders */
     [data-testid="stExpander"] details {
-        border: 1px solid var(--tb-border) !important;
-        border-radius: 12px !important;
-        background: var(--tb-surface-2) !important;
+        border: 1px dashed rgba(11, 18, 32, 0.22) !important;
+        border-radius: 16px !important;
+        background: color-mix(in srgb, var(--tb-surface-2) 88%, white 12%) !important;
     }
     /* Primary CTA */
     .stButton > button[kind="primary"] {
-        font-weight: 600;
-        border-radius: 10px;
-        padding: 0.5rem 1rem;
-        box-shadow: 0 2px 14px rgba(37, 99, 235, 0.22);
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 0.55rem 1.05rem;
+        border: 1px solid rgba(11, 18, 32, 0.14) !important;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 1) 0%, rgba(255, 45, 122, 1) 100%) !important;
+        box-shadow: 0 14px 34px rgba(37, 99, 235, 0.20);
+        transform: translateY(0);
+        transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 44px rgba(37, 99, 235, 0.24);
+        filter: saturate(1.05);
     }
     .tb-eyebrow {
         font-size: 0.72rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.14em;
-        color: rgba(37, 99, 235, 0.92);
+        color: rgba(11, 18, 32, 0.62);
         margin: 0 0 0.35rem;
     }
     .tb-hero {
         position: relative;
         overflow: hidden;
         background:
-            radial-gradient(ellipse 90% 120% at 100% 0%, rgba(37, 99, 235, 0.18) 0%, transparent 55%),
-            radial-gradient(ellipse 70% 80% at 0% 100%, rgba(99, 102, 241, 0.10) 0%, transparent 50%),
-            linear-gradient(135deg, #ffffff 0%, #f5f7ff 55%, #ffffff 100%);
-        border-radius: 18px;
-        padding: 1.35rem 1.5rem 1.45rem;
+            radial-gradient(900px 520px at 5% 5%, rgba(255, 45, 122, 0.16) 0%, transparent 60%),
+            radial-gradient(820px 540px at 95% 0%, rgba(37, 99, 235, 0.16) 0%, transparent 60%),
+            radial-gradient(900px 620px at 60% 120%, rgba(52, 211, 153, 0.12) 0%, transparent 62%),
+            linear-gradient(135deg, #ffffff 0%, #fff8fb 42%, #f4f7ff 100%);
+        border-radius: 22px;
+        padding: 1.4rem 1.55rem 1.55rem;
         color: var(--tb-text);
         margin-bottom: 1.15rem;
-        border: 1px solid var(--tb-border);
+        border: 2px solid rgba(11, 18, 32, 0.12);
         box-shadow:
-            0 0 0 1px rgba(37, 99, 235, 0.06) inset,
-            0 18px 50px rgba(15, 23, 42, 0.10);
+            0 0 0 1px rgba(255, 45, 122, 0.05) inset,
+            0 18px 55px rgba(15, 23, 42, 0.10);
+    }
+    .tb-hero::after {
+        content: "";
+        position: absolute;
+        inset: -40px -60px auto auto;
+        width: 220px;
+        height: 220px;
+        background: radial-gradient(circle at 30% 30%, rgba(255, 45, 122, 0.55), rgba(255, 45, 122, 0.0) 62%);
+        transform: rotate(18deg);
+        opacity: 0.35;
+        pointer-events: none;
     }
     .tb-hero h1 {
         font-size: clamp(1.45rem, 3vw, 1.85rem);
@@ -327,21 +369,24 @@ def inject_styles() -> None:
         display: inline-block;
         padding: 0.3rem 0.65rem;
         border-radius: 999px;
-        background: var(--tb-accent-soft);
-        border: 1px solid rgba(37, 99, 235, 0.35);
+        background: rgba(11, 18, 32, 0.04);
+        border: 1px dashed rgba(11, 18, 32, 0.22);
         font-size: 0.78rem;
-        font-weight: 500;
+        font-weight: 650;
         margin-right: 0.45rem;
         margin-top: 0.35rem;
-        color: rgba(37, 99, 235, 0.92);
+        color: rgba(11, 18, 32, 0.78);
     }
+    .tb-chip:nth-child(3n+1) { border-color: rgba(37, 99, 235, 0.40); }
+    .tb-chip:nth-child(3n+2) { border-color: rgba(255, 45, 122, 0.40); }
+    .tb-chip:nth-child(3n+3) { border-color: rgba(52, 211, 153, 0.42); }
     .tb-card {
-        border: 1px solid var(--tb-border);
-        border-radius: 16px;
+        border: 2px solid rgba(11, 18, 32, 0.10);
+        border-radius: 20px;
         background: var(--tb-surface);
         padding: 1.05rem 1.2rem;
         margin-bottom: 1rem;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
     .tb-card h3, .tb-card [data-testid="stHeader"] {
         margin-top: 0 !important;
@@ -351,7 +396,7 @@ def inject_styles() -> None:
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.16em;
-        color: var(--tb-accent);
+        color: rgba(11, 18, 32, 0.70);
         margin: 0 0 0.2rem;
     }
     .tb-muted {
@@ -405,10 +450,10 @@ def inject_styles() -> None:
         word-break: break-word;
     }
     [data-testid="stDataFrame"] {
-        border: 1px solid var(--tb-border);
-        border-radius: 14px;
+        border: 2px solid rgba(11, 18, 32, 0.10);
+        border-radius: 18px;
         overflow: hidden;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
     /* Make tables more compact and allow header wrapping */
     [data-testid="stDataFrame"] * {
@@ -935,13 +980,14 @@ def main() -> None:
     st.markdown(
         """
 <div class="tb-hero">
-  <p class="tb-eyebrow">Gravel · MTB · Race setup</p>
-  <h1>TireBot Race Setup Advisor</h1>
-  <p>Dial your setup for gravel race speed with route-aware tire and pressure recommendations.</p>
+  <p class="tb-eyebrow">Gravel · MTB · race day nerd stuff</p>
+  <h1>TireBot — your weird little tire scientist</h1>
+  <p>Pick a route. Pick a speed. TireBot will argue with itself and hand you a tire, pressure, and risk call.</p>
   <div style="margin-top: 0.85rem;">
     <span class="tb-chip">Route-aware</span>
     <span class="tb-chip">CRR-based</span>
     <span class="tb-chip">Race-day pressure</span>
+    <span class="tb-chip">Risk labels</span>
   </div>
 </div>
         """,
