@@ -744,7 +744,19 @@ def main() -> None:
         )
 
         with st.expander("Advanced options", expanded=False):
-            early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
+            early_boost = st.slider(
+                "Early-race weighting",
+                min_value=1.0,
+                max_value=3.0,
+                value=1.8,
+                step=0.1,
+                help="Higher values prioritize early-race performance. Applied by segment position: first 25% × this value, "
+                "25–70% × 1.15, last 30% × 1.0.",
+            )
+            st.caption(
+                "How it works: TireBot weights each segment by its position in the course. "
+                "If you’re racing for the front group, a higher early weighting can better reflect the cost of losing contact early."
+            )
             top_n = st.slider("Top tire options", min_value=3, max_value=20, value=5, step=1)
 
         st.markdown("**Race start tire** (optional)")
