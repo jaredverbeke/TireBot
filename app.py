@@ -33,6 +33,7 @@ RISK_LABELS_PATH = ROOT / "data" / "risk_labels.csv"
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
 
 FEEDBACK_EMAIL = "jaredverbeke@gmail.com"
+STRIPE_DONATE_URL = "https://buy.stripe.com/test_fZueVf4O6eqleWw0jqcs800"
 
 # Segment CSVs list distances in miles; summarize_route also reports miles.
 KM_TO_MI = 0.621371
@@ -314,6 +315,33 @@ def inject_styles() -> None:
         color: #050607 !important;
         -webkit-text-fill-color: #050607 !important;
         fill: #050607 !important;
+    }
+
+    /* Donate button (Stripe link) */
+    .tb-donate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.56rem 0.92rem;
+        border-radius: 999px;
+        background: var(--tb-yellow);
+        color: #050607 !important;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        font-weight: 900;
+        text-decoration: none !important;
+        box-shadow: 0 18px 44px rgba(255, 212, 0, 0.14);
+    }
+    .tb-donate-btn:hover {
+        filter: saturate(1.05);
+        transform: translateY(-1px);
+        box-shadow: 0 24px 56px rgba(255, 212, 0, 0.18);
+    }
+    .tb-donate-sub {
+        color: var(--tb-text-dim);
+        font-size: 0.92rem;
+        margin: 0.55rem 0 0;
+        max-width: 44rem;
+        line-height: 1.45;
     }
 
     /* Text inputs / text areas should stay light with dark text */
@@ -980,7 +1008,7 @@ def main() -> None:
     sha = current_git_sha_short()
     build_no = current_build_number()
     st.markdown(
-        """
+        f"""
 <div class="tb-hero">
   <p class="tb-eyebrow">Gravel · MTB · race day setup</p>
   <h1>TreadLab: Pick the perfect tire.</h1>
@@ -990,6 +1018,10 @@ def main() -> None:
     <span class="tb-chip">CRR-based</span>
     <span class="tb-chip">Race-day pressure</span>
     <span class="tb-chip">Risk labels</span>
+  </div>
+  <div style="margin-top: 0.95rem; display:flex; gap:0.65rem; flex-wrap:wrap; align-items:center;">
+    <a class="tb-donate-btn" href="{STRIPE_DONATE_URL}" target="_blank" rel="noopener noreferrer">Donate $5</a>
+    <span class="tb-donate-sub">Optional tip to support TreadLab’s data + development.</span>
   </div>
 </div>
         """,
