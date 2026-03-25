@@ -2,10 +2,14 @@ segment_name,segment_start,segment_end,surface_type,selection_risk
 neutral rollout,0,2.4855,road,1
 early fast dirt roads,2.4855,9.942,cat1,1.1
 wind-exposed gravel,9.942,17.3984,cat1,1.2
-chunky rollers,17.3984,22.9908,cat2,1.3
+chunky rollers,17.3984,21.85,cat2,1.3
+short mud patch (possible),21.85,22.25,cat3,1.6
+chunky rollers (after mud),22.25,22.9908,cat2,1.3
 farm-road connector,22.9908,26.719,road,1
 smooth hardpack stretch,26.719,34.1755,cat1,1.1
-rough washboard band,34.1755,41.0106,cat2,1.3
+rough washboard band,34.1755,38.22,cat2,1.3
+railroad crossing (short),38.22,38.46,cat3,1.6
+post-crossing washboard,38.46,41.0106,cat2,1.3
 highway crossing zone,41.0106,44.1175,road,1
 open red-dirt sector,44.1175,52.1953,cat1,1.2
 creek crossing approaches,52.1953,57.1663,cat2,1.4
@@ -13,6 +17,8 @@ midrace hardpack tempo,57.1663,65.8655,cat1,1.1
 technical dirt + ruts,65.8655,73.322,cat2,1.4
 town pavement reset,73.322,77.0502,road,1
 gravel headwind corridor,77.0502,85.7494,cat1,1.2
-late-race fatigue section,85.7494,93.2059,cat2,1.5
+late-race fatigue section,85.7494,88.75,cat2,1.5
+wild horse creek crossing (short),88.75,89.00,cat3,1.7
+late-race fatigue section (after crossing),89.00,93.2059,cat2,1.5
 final fast gravel,93.2059,100.6624,cat1,1.2
 finish run-in,100.6624,106.3169,road,1.1

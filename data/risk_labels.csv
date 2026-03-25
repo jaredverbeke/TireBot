@@ -1,0 +1,80 @@
+route,event_label,tire_name,width_mm,tire_class,road_mi,cat1_mi,cat2_mi,cat3_mi,above_mi,total_mi,label
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Dubnital Rapid Race 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Maxxis Aspen 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Pirelli Scorpion XC RC Team 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Rick XC Pro Speed 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,VIttoria Barzo XC Race 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Mezcal XC Race 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Peyote XC Race 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Terreno XC Race 29 x 2.4,61.0,unknown,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe G-One Speed PRO 29 x 2.35,59.7,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Specialized Air Trak Flex Lite 29 x 2.35,59.7,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Maxxis Aspen ST 170 29 x 2.25,57.1,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Rick XC Pro Speed 29 x 2.25,57.1,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Thunder Burt SG 29 x 2.25,57.1,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Scwhalbe Thunder Burt SG 29 x 2.25,57.1,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Peyote XC Race 29 x 2.25,57.1,unknown,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Dubnital Rapid Race 29 x 2.2,55.9,unknown,12.000,65.000,8.000,104.000,High
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Race King Black Chili 29 x 2.2,55.9,unknown,12.000,65.000,8.000,104.000,High
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Kenda Rush Pro SCT 29 x 2.2,55.9,unknown,12.000,65.000,8.000,104.000,High
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Dubnital Rapid Race 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Maxxis Aspen 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Pirelli Scorpion XC RC Team 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Rick XC Pro Speed 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,VIttoria Barzo XC Race 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Mezcal XC Race 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Peyote XC Race 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Terreno XC Race 29 x 2.4,61.0,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Low
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe G-One Speed PRO 29 x 2.35,59.7,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Specialized Air Trak Flex Lite 29 x 2.35,59.7,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Maxxis Aspen ST 170 29 x 2.25,57.1,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Rick XC Pro Speed 29 x 2.25,57.1,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Schwalbe Thunder Burt SG 29 x 2.25,57.1,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Scwhalbe Thunder Burt SG 29 x 2.25,57.1,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Vittoria Peyote XC Race 29 x 2.25,57.1,unknown,19.000,0.000,12.000,65.000,8.000,104.000,Medium
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Dubnital Rapid Race 29 x 2.2,55.9,unknown,19.000,0.000,12.000,65.000,8.000,104.000,High
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Conti Race King Black Chili 29 x 2.2,55.9,unknown,19.000,0.000,12.000,65.000,8.000,104.000,High
+Routes/Leadville 100/Leadville 100 segments.csv,Leadville 100,Kenda Rush Pro SCT 29 x 2.2,55.9,unknown,19.000,0.000,12.000,65.000,8.000,104.000,High
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Pirelli Scorpion XC RH 29 x 2.4 - Race,0.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Corsa PRO Control 700 x 34,34.0,road,18.703,55.302,31.421,0.890,0.000,106.317,High
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Hutchinson Caracal Race 700 x 40,40.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Medium
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe PRO ONE ALLROAD 700 x 40,40.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Medium
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Corsa PRO Control 700 x 42,42.0,road,18.703,55.302,31.421,0.890,0.000,106.317,Medium
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Terra Speed 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Hutchinson Caracal Race 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Maxxis Rambler HYPR-X 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Maxxis Reaver HYPR-X 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G ONE RS PRO 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G ONE RX PRO 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Specialized Pathfinder TLR 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Terreno Pro T30 700 x 45,45.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Enve Hex Race 700 x 48,48.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Rene Herse Oracle Ridge Standard 700 x 48,48.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Tufo Gravel Thundero 700 x 48,48.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Terra Hardpack 700 x 50,50.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G ONE RX PRO 700 x 50,50.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Specialized Tracer TLR 700 x 50,50.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Race King Pure Grip 29 x 2.0,50.8,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Maxxis Maxxlite 29 x 2.0,50.8,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Scwhalbe Thunder Burt SG 29 x 2.1,53.3,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Terreno XCR 29 x 2.1,53.3,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G ONE RS PRO 700 x 55,55.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G ONE RX PRO 700 x 55,55.0,gravel,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Dubnital Rapid Race 29 x 2.2,55.9,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Race King Black Chili 29 x 2.2,55.9,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Kenda Rush Pro SCT 29 x 2.2,55.9,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Maxxis Aspen ST 170 29 x 2.25,57.1,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe Rick XC Pro Speed 29 x 2.25,57.1,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe Thunder Burt SG 29 x 2.25,57.1,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Scwhalbe Thunder Burt SG 29 x 2.25,57.1,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Peyote XC Race 29 x 2.25,57.1,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe G-One Speed PRO 29 x 2.35,59.7,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Specialized Air Trak Flex Lite 29 x 2.35,59.7,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Conti Dubnital Rapid Race 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Maxxis Aspen 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Pirelli Scorpion XC RC Team 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Schwalbe Rick XC Pro Speed 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,VIttoria Barzo XC Race 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Mezcal XC Race 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Peyote XC Race 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low
+Routes/MidSouth 100/MidSouth 100 segments.csv,MidSouth 100,Vittoria Terreno XC Race 29 x 2.4,61.0,mtb,18.703,55.302,31.421,0.890,0.000,106.317,Low

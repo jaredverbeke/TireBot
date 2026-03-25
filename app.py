@@ -19,6 +19,7 @@ from recommend_tires import (
     load_tires_with_optional_brr,
     score_tires,
 )
+from risk_model import build_features_for_route_and_tire, load_labeled_examples, predict_knn
 
 
 ROOT = Path(__file__).parent
@@ -27,6 +28,7 @@ TIRES_CSV = ROOT / "Gravel and MTB Tire Testing by John Karrasch  - Overall CRR.
 BRR_CRR_CSV = ROOT / "data" / "brr_crr.csv"
 TIRE_MASS_CSV = ROOT / "data" / "tire_mass_overrides.csv"
 BUILD_NUMBER_PATH = ROOT / "data" / "build_number.txt"
+RISK_LABELS_PATH = ROOT / "data" / "risk_labels.csv"
 # Whitepaper: GitHub Pages site (serves docs/index.html + WHITEPAPER.md).
 WHITEPAPER_ONLINE_PAGES_URL = "https://jaredverbeke.github.io/TireBot/"
 
@@ -147,6 +149,24 @@ def tire_issue_risk_for_tire(
     return "High"
 
 
+def tire_issue_risk_label(
+    *,
+    examples: List,
+    segments: List[Segment],
+    tire_width_mm: float,
+    tire_class: str,
+    fallback_label: str,
+) -> str:
+    if not examples:
+        return fallback_label
+    try:
+        feats = build_features_for_route_and_tire(segments=segments, width_mm=tire_width_mm, tire_class=tire_class)
+        pred = predict_knn(query=feats, examples=examples, k=5)
+        return pred or fallback_label
+    except Exception:
+        return fallback_label
+
+
 def risk_badge_html(label: str) -> str:
     lab = (label or "").strip()
     colors = {
@@ -193,6 +213,13 @@ def current_build_number() -> Optional[int]:
         return int(raw)
     except Exception:
         return None
+
+
+def load_risk_examples() -> List:
+    try:
+        return load_labeled_examples(RISK_LABELS_PATH)
+    except Exception:
+        return []
 
 
 def inject_styles() -> None:
@@ -1124,13 +1151,21 @@ def main() -> None:
     winner_total_watts = winner["total_watts"]
     cat2_mi = cat2_distance_mi(segments)
     cat3_mi = cat3_distance_mi(segments)
-    risk_label = tire_issue_risk_for_tire(
+    risk_examples = load_risk_examples()
+    risk_label_fallback = tire_issue_risk_for_tire(
         winner_width,
         cat2_mi,
         cat3_mi,
         tire_name=winner["tire_name"],
         tire_class=winner.get("tire_class", ""),
         above_mi=above_mi,
+    )
+    risk_label = tire_issue_risk_label(
+        examples=risk_examples,
+        segments=segments,
+        tire_width_mm=winner_width,
+        tire_class=str(winner.get("tire_class", "")),
+        fallback_label=risk_label_fallback,
     )
     risk_badge = risk_badge_html(risk_label)
 
@@ -1197,13 +1232,20 @@ def main() -> None:
         width_text = f"{result['width_mm']:.1f}"
         tire_width = result["width_mm"]
         f_psi, r_psi = estimate_pressure(tire_width, weight_kg, speed_tier, roughness)
-        risk = tire_issue_risk_for_tire(
+        risk_fallback = tire_issue_risk_for_tire(
             tire_width,
             cat2_mi,
             cat3_mi,
             tire_name=result["tire_name"],
             tire_class=result.get("tire_class", ""),
             above_mi=above_mi,
+        )
+        risk = tire_issue_risk_label(
+            examples=risk_examples,
+            segments=segments,
+            tire_width_mm=tire_width,
+            tire_class=str(result.get("tire_class", "")),
+            fallback_label=risk_fallback,
         )
         rows.append(
             {
@@ -1283,13 +1325,20 @@ def main() -> None:
             early_above_mi = above_distance_mi(early_segments)
             for idx, result in enumerate(early_ranked[: min(top_n, 8)], start=1):
                 f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, early_speed_tier, roughness)
-                risk = tire_issue_risk_for_tire(
+                risk_fallback = tire_issue_risk_for_tire(
                     result["width_mm"],
                     early_cat2_mi,
                     early_cat3_mi,
                     tire_name=result["tire_name"],
                     tire_class=result.get("tire_class", ""),
                     above_mi=early_above_mi,
+                )
+                risk = tire_issue_risk_label(
+                    examples=risk_examples,
+                    segments=early_segments,
+                    tire_width_mm=float(result["width_mm"] or 0.0),
+                    tire_class=str(result.get("tire_class", "")),
+                    fallback_label=risk_fallback,
                 )
                 early_rows.append(
                     {
