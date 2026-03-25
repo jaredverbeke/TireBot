@@ -10,8 +10,15 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
+import altair as alt
 
-from recommend_tires import Segment, load_segments, load_tires_with_optional_brr, score_tires
+from recommend_tires import (
+    Segment,
+    interpolate_missing_surface_values,
+    load_segments,
+    load_tires_with_optional_brr,
+    score_tires,
+)
 
 
 ROOT = Path(__file__).parent
@@ -1289,6 +1296,121 @@ def main() -> None:
                 hide_index=True,
                 height=dataframe_height_for_rows(len(early_rows), max_px=420),
             )
+
+    st.markdown('<div class="tb-divider-label">Performance over course</div>', unsafe_allow_html=True)
+    st.subheader("Top 3 performance vs course distance")
+    st.caption(
+        "Chart shows **cumulative time difference** vs the current winner (0 line) as the route progresses. "
+        "This is a simplified model using segment surfaces + impedance and assumes the same rider effort across tires."
+    )
+
+    try:
+        tire_by_name = {str(t.get("tire_name", "")): t for t in tires}
+        top3 = ranked[: min(3, len(ranked))]
+        if len(top3) >= 2 and segments:
+            ordered = sorted(segments, key=lambda s: s.race_position)
+            speed_mps = avg_speed_mph * 0.44704
+            system_mass_kg = weight_kg + 9.0
+
+            def delta_crr_for_segment(seg: Segment, *, width_mm: float) -> float:
+                k = IMPEDANCE_K_BY_SURFACE.get(seg.surface, 0.0)
+                target = IMPEDANCE_TARGET_STIFFNESS.get(seg.surface, 0.0)
+                if k <= 0 or target <= 0:
+                    return 0.0
+                roughness_surface = {
+                    "road": 0.0,
+                    "cat1": 0.9,
+                    "cat2": 1.8,
+                    "cat3": 3.0,
+                    "above": 3.6,
+                }.get(seg.surface, 1.2)
+                f_psi, r_psi = estimate_pressure(width_mm, weight_kg, speed_tier, roughness_surface)
+                avg_psi = max(1.0, (f_psi + r_psi) / 2.0)
+                stiffness = (avg_psi * max(1.0, width_mm)) / max(1e-9, weight_kg)
+                if stiffness <= target:
+                    return 0.0
+                stiff_ratio = (stiffness / target) - 1.0
+                return k * (stiff_ratio**IMPEDANCE_GAMMA)
+
+            # Precompute per-tire constants.
+            per_tire = {}
+            for r in top3:
+                t = tire_by_name.get(str(r["tire_name"]))
+                if not t:
+                    continue
+                sv = interpolate_missing_surface_values(t)
+                if sv is None:
+                    continue
+                width_mm = float(r.get("width_mm") or t.get("width_mm") or 45.0)
+                aero_w = float(estimate_aero_penalty_watts(width_mm, avg_speed_mph)) * float(aero_distance_fraction)
+                mass_g = estimate_tire_mass_grams(width_mm, str(r["tire_name"]), mass_overrides)
+                mass_w = float(
+                    estimate_tire_mass_penalty_watts(mass_g, route_stats["distance_km"], total_elev_gain_m, avg_speed_mph)
+                )
+                per_tire[str(r["tire_name"])] = {
+                    "surface_vals": sv,
+                    "width_mm": width_mm,
+                    "aero_w": aero_w,
+                    "mass_w": mass_w,
+                }
+
+            winner_name = str(top3[0]["tire_name"])
+            if winner_name in per_tire and len(per_tire) >= 2:
+                cumulative_mi = 0.0
+                cumulative_delta_s = {name: 0.0 for name in per_tire.keys()}
+                points = []
+                for seg in ordered:
+                    seg_mi = km_to_mi(seg.distance_km)
+                    if seg_mi <= 0:
+                        continue
+                    base_time_s = (seg_mi / max(1e-9, avg_speed_mph)) * 3600.0
+                    cumulative_mi += seg_mi
+
+                    def seg_total_watts(tire_name: str) -> float:
+                        meta = per_tire[tire_name]
+                        sv = meta["surface_vals"]
+                        surface_key = "cat3" if seg.surface == "above" else seg.surface
+                        base_crr = float(sv.get(surface_key, 0.0))
+                        crr = base_crr + delta_crr_for_segment(seg, width_mm=float(meta["width_mm"]))
+                        rr_w = crr * system_mass_kg * 9.80665 * speed_mps
+                        return rr_w + float(meta["aero_w"]) + float(meta["mass_w"])
+
+                    winner_w = max(1e-6, seg_total_watts(winner_name))
+                    for name in list(per_tire.keys()):
+                        tw = max(1e-6, seg_total_watts(name))
+                        ratio = tw / winner_w
+                        cumulative_delta_s[name] += base_time_s * (ratio - 1.0)
+                        points.append(
+                            {
+                                "Distance (mi)": cumulative_mi,
+                                "Tire": name,
+                                "Cumulative Δ (min)": cumulative_delta_s[name] / 60.0,
+                            }
+                        )
+
+                dfp = pd.DataFrame(points)
+                chart = (
+                    alt.Chart(dfp)
+                    .mark_line()
+                    .encode(
+                        x=alt.X("Distance (mi):Q", title="Course distance (mi)"),
+                        y=alt.Y("Cumulative Δ (min):Q", title="Cumulative time difference vs winner (min)"),
+                        color=alt.Color("Tire:N", title="Tire"),
+                        tooltip=[
+                            alt.Tooltip("Distance (mi):Q", format=".1f"),
+                            alt.Tooltip("Tire:N"),
+                            alt.Tooltip("Cumulative Δ (min):Q", format=".2f"),
+                        ],
+                    )
+                    .properties(height=280)
+                )
+                st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("Not enough tire data to render the performance chart.")
+        else:
+            st.info("Select a route and generate recommendations to see the performance chart.")
+    except Exception:
+        st.info("Performance chart unavailable for this route/data.")
 
     render_feedback_footer(route_context_str)
 
