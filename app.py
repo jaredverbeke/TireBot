@@ -1301,7 +1301,7 @@ def main() -> None:
     st.subheader("Top 3 performance vs course distance")
     st.caption(
         "Chart shows **cumulative time difference** vs the current winner (0 line) as the route progresses. "
-        "This is a simplified model using segment surfaces + impedance and assumes the same rider effort across tires."
+        "This is a simplified model using segment surfaces + impedance and converts watts→time using an estimated rider aero/drivetrain baseline."
     )
 
     try:
@@ -1376,10 +1376,18 @@ def main() -> None:
                         return rr_w + float(meta["aero_w"]) + float(meta["mass_w"])
 
                     winner_w = max(1e-6, seg_total_watts(winner_name))
+                    # Convert Δwatts -> Δtime using a more realistic denominator than "tire watts only".
+                    # At these speeds, most rider power is spent on rider/position aero + drivetrain losses.
+                    rho = 1.225  # kg/m^3 (sea level)
+                    cda = 0.30  # typical gravel rider aero area
+                    drivetrain_w = 10.0
+                    rider_aero_w = 0.5 * rho * cda * (speed_mps**3)
+                    other_w = drivetrain_w + rider_aero_w
+                    denom_w = max(1.0, winner_w + other_w)
                     for name in list(per_tire.keys()):
                         tw = max(1e-6, seg_total_watts(name))
-                        ratio = tw / winner_w
-                        cumulative_delta_s[name] += base_time_s * (ratio - 1.0)
+                        delta_w = tw - winner_w
+                        cumulative_delta_s[name] += base_time_s * (delta_w / denom_w)
                         points.append(
                             {
                                 "Distance (mi)": cumulative_mi,
