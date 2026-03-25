@@ -747,6 +747,16 @@ def main() -> None:
             value=False,
             help="Uses your average speed slider to approximate distance covered in 90 minutes, then re-ranks tires on that early subset.",
         )
+        early_speed_mph = None
+        if show_first_90:
+            early_speed_mph = st.slider(
+                "Early 90-min speed (mph)",
+                min_value=10.0,
+                max_value=40.0,
+                value=min(32.0, max(10.0, float(avg_speed_mph) + 3.0)),
+                step=0.5,
+                help="Used only for the early-race (first 90 minutes) view. This speed determines the early distance cutoff and the watts in that early ranking.",
+            )
 
         with st.expander("Advanced options", expanded=False):
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
@@ -921,7 +931,9 @@ def main() -> None:
     )
 
     if show_first_90:
-        early_segments = segments_first_n_minutes(segments, avg_speed_mph, 90.0)
+        early_speed = float(early_speed_mph or avg_speed_mph)
+        early_speed_tier = speed_tier_from_avg_mph(early_speed)
+        early_segments = segments_first_n_minutes(segments, early_speed, 90.0)
         if not early_segments:
             st.warning("Could not compute a 90-minute subset for this route.")
         else:
@@ -934,7 +946,7 @@ def main() -> None:
                 early_weighted_distance,
                 early_route_km,
                 early_elev_gain_m,
-                avg_speed_mph,
+                early_speed,
                 weight_kg,
                 mass_overrides,
                 aero_distance_fraction=aero_distance_fraction,
@@ -943,7 +955,7 @@ def main() -> None:
             st.markdown('<div class="tb-divider-label">Early race</div>', unsafe_allow_html=True)
             st.subheader("Best tire for first 90 minutes")
             st.caption(
-                f"Approximates first 90 minutes as the first {km_to_mi(early_route_km):.1f} mi of the route at {avg_speed_mph:.1f} mph."
+                f"Approximates first 90 minutes as the first {km_to_mi(early_route_km):.1f} mi of the route at {early_speed:.1f} mph."
             )
             e1, e2, e3 = st.columns(3)
             e1.metric("Early best tire", early_winner["tire_name"])
@@ -952,7 +964,7 @@ def main() -> None:
 
             early_rows = []
             for idx, result in enumerate(early_ranked[: min(top_n, 8)], start=1):
-                f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, speed_tier, roughness)
+                f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, early_speed_tier, roughness)
                 early_rows.append(
                     {
                         "Rank": idx,
