@@ -377,6 +377,44 @@ def effective_weighted_distance(segments: List[Segment], early_boost: float) -> 
     )
 
 
+def segments_first_n_minutes(segments: List[Segment], avg_speed_mph: float, minutes: float) -> List[Segment]:
+    """Approximate the first N minutes of the race by distance at avg speed.
+
+    Uses segment ordering by race_position and truncates the last segment proportionally.
+    """
+    if not segments or avg_speed_mph <= 0 or minutes <= 0:
+        return []
+    target_km = (avg_speed_mph * 1.60934) * (minutes / 60.0)
+    if target_km <= 0:
+        return []
+
+    out: List[Segment] = []
+    remaining = target_km
+    ordered = sorted(segments, key=lambda s: s.race_position)
+    for seg in ordered:
+        if remaining <= 1e-9:
+            break
+        if seg.distance_km <= remaining + 1e-9:
+            out.append(seg)
+            remaining -= seg.distance_km
+            continue
+        # Partial segment
+        frac = max(0.0, min(1.0, remaining / max(seg.distance_km, 1e-9)))
+        out.append(
+            Segment(
+                name=f"{seg.name} (partial)",
+                distance_km=seg.distance_km * frac,
+                surface=seg.surface,
+                technicality=seg.technicality,
+                selection_risk=seg.selection_risk,
+                race_position=seg.race_position,
+            )
+        )
+        remaining = 0.0
+        break
+    return out
+
+
 def estimate_rr_watts(total_score: float, weighted_distance: float, speed_mph: float, weight_kg: float) -> float:
     if weighted_distance <= 0:
         return 0.0
@@ -704,10 +742,15 @@ def main() -> None:
             help="Rolling resistance uses this speed everywhere. Aero penalty uses this speed scaled by GPX: only "
             "distance that is not a steep downhill or steep climb counts (see results footnote).",
         )
+        show_first_90 = st.checkbox(
+            "Also show best tire for first 90 minutes",
+            value=False,
+            help="Uses your average speed slider to approximate distance covered in 90 minutes, then re-ranks tires on that early subset.",
+        )
 
         with st.expander("Advanced options", expanded=False):
             early_boost = st.slider("Early-race weighting", min_value=1.0, max_value=3.0, value=1.8, step=0.1)
-            top_n = st.slider("Top tire options", min_value=3, max_value=20, value=8, step=1)
+            top_n = st.slider("Top tire options", min_value=3, max_value=20, value=5, step=1)
 
         submitted = st.form_submit_button("Generate recommendation", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -876,6 +919,54 @@ def main() -> None:
             "Rear PSI": st.column_config.NumberColumn(format="%.1f"),
         },
     )
+
+    if show_first_90:
+        early_segments = segments_first_n_minutes(segments, avg_speed_mph, 90.0)
+        if not early_segments:
+            st.warning("Could not compute a 90-minute subset for this route.")
+        else:
+            early_route_km = sum(s.distance_km for s in early_segments)
+            early_weighted_distance = effective_weighted_distance(early_segments, early_boost)
+            early_ranked_by_rr = score_tires(tires, early_segments, early_boost)
+            early_elev_gain_m = total_elev_gain_m * (early_route_km / max(route_stats["distance_km"], 1e-9))
+            early_ranked = rank_by_fastest_total_watts(
+                early_ranked_by_rr,
+                early_weighted_distance,
+                early_route_km,
+                early_elev_gain_m,
+                avg_speed_mph,
+                weight_kg,
+                mass_overrides,
+                aero_distance_fraction=aero_distance_fraction,
+            )
+            early_winner = early_ranked[0]
+            st.markdown('<div class="tb-divider-label">Early race</div>', unsafe_allow_html=True)
+            st.subheader("Best tire for first 90 minutes")
+            st.caption(
+                f"Approximates first 90 minutes as the first {km_to_mi(early_route_km):.1f} mi of the route at {avg_speed_mph:.1f} mph."
+            )
+            e1, e2, e3 = st.columns(3)
+            e1.metric("Early best tire", early_winner["tire_name"])
+            e2.metric("Early total resistance", f"{early_winner['total_watts']:.1f} W")
+            e3.metric("Early aero penalty", f"{early_winner['aero_penalty_watts']:+.1f} W")
+
+            early_rows = []
+            for idx, result in enumerate(early_ranked[: min(top_n, 8)], start=1):
+                f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, speed_tier, roughness)
+                early_rows.append(
+                    {
+                        "Rank": idx,
+                        "Tire": result["tire_name"],
+                        "Width (mm)": f"{result['width_mm']:.1f}",
+                        "Rolling Resistance (W)": result["rr_watts"],
+                        "Aero Penalty (W)": result["aero_penalty_watts"],
+                        "Mass Penalty (W)": result["mass_penalty_watts"],
+                        "Total Resistance (W)": result["total_watts"],
+                        "Front PSI": f_psi,
+                        "Rear PSI": r_psi,
+                    }
+                )
+            st.dataframe(early_rows, use_container_width=True, hide_index=True)
 
     render_feedback_footer(route_context_str)
 
