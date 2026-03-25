@@ -975,7 +975,7 @@ def summarize_route(path: Path) -> Dict[str, float]:
 
 
 def main() -> None:
-    st.set_page_config(page_title="TireBot", page_icon="🚴", layout="wide")
+    st.set_page_config(page_title="TreadLab: Pick the perfect tire.", page_icon="🚴", layout="wide")
     inject_styles()
     sha = current_git_sha_short()
     build_no = current_build_number()
@@ -983,7 +983,7 @@ def main() -> None:
         """
 <div class="tb-hero">
   <p class="tb-eyebrow">Gravel · MTB · race day setup</p>
-  <h1>TireBot Race Setup Advisor</h1>
+  <h1>TreadLab: Pick the perfect tire.</h1>
   <p>Route-aware tire, pressure, and risk recommendations for race day.</p>
   <div style="margin-top: 0.85rem;">
     <span class="tb-chip">Route-aware</span>

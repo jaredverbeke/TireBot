@@ -1,17 +1,21 @@
-# TireBot Whitepaper
+# TreadLab Whitepaper
+
+TreadLab (formerly TireBot) recommends the fastest tire + pressure setup for a specific event route, with a practical “tire issue risk” call.
 
 ## 1) What TireBot does
 
-TireBot recommends the fastest tire and pressure setup for a specific gravel event route.
+TreadLab recommends the fastest tire and pressure setup for a specific gravel event route.
 
 The app combines:
 
-- route surface segmentation (`road`, `cat1`, `cat2`, `cat3`)
+- route surface segmentation (`road`, `cat1`, `cat2`, `cat3`, plus `above`)
 - rolling resistance (CRR) test data by tire and surface
 - rider inputs (weight, average speed)
 - race dynamics weighting (extra emphasis on early race sectors)
 - aerodynamic width effects (optionally scaled by GPX grade so steep downhills and steep climbs contribute less to the aero term)
 - optional tire-mass effects over route climbing
+- rough-surface impedance penalty (pressure/width/load dependent rolling penalty proxy)
+- tire issue risk (Low / Medium / High), optionally learned from labeled examples
 
 The output is a practical race-day recommendation:
 
@@ -71,6 +75,18 @@ Each segment contributes differently depending on:
 - early-race weighting
 - optional technicality / selection risk multipliers
 
+#### Surface types (including “Above Category”)
+
+Segment surface types are:
+
+- `road`, `cat1`, `cat2`, `cat3`
+- `above` = “Above Category”: very technical / unusually rough sections that don’t fit the standard categories.
+
+At present:
+
+- `above` is treated like `cat3` for CRR lookup (rolling-resistance scoring), but is tracked separately in route stats.
+- if a route has **more than 2.0 miles** tagged `above`, the app restricts recommendations to **MTB tires only** (≥ 2.2" width).
+
 ### 2.3 Rider and race inputs
 
 From app inputs:
@@ -111,7 +127,18 @@ Tire route score:
 
 Lower is better.
 
-## 3.2 Rolling resistance power (watts)
+## 3.2 Rough-surface impedance penalty (CRR-equivalent)
+
+Rough surfaces often reward *lower* pressures and *more support* (wider casings) beyond what a pure CRR table can capture.
+TreadLab adds a tunable, pressure/width/load dependent penalty on rougher surfaces as an extra CRR-equivalent contribution:
+
+- It estimates a segment-specific heuristic pressure from rider weight, tire width, inferred speed tier, and surface roughness.
+- It computes a “stiffness proxy” from pressure × width ÷ rider weight.
+- If stiffness is above a surface-specific target, it adds a penalty that grows nonlinearly with stiffness.
+
+This term is meant to be **directionally correct** and **tunable**, not a definitive physics model.
+
+## 3.3 Rolling resistance power (watts)
 
 TireBot converts route score into estimated rolling power at the selected speed and weight:
 
@@ -123,7 +150,7 @@ Where:
 - `m` is rider + bike system mass estimate
 - `v` is average speed
 
-## 3.3 Aero width penalty (watts)
+## 3.4 Aero width penalty (watts)
 
 TireBot adds an **aero width penalty** based on tire width relative to a baseline width, with magnitude that scales approximately with **speed cubed** (same functional form as before).
 
@@ -165,13 +192,13 @@ Result:
 - narrower tires generally get less aero penalty
 - wider tires can gain rolling advantages on rough surfaces but may lose more aero watts on the **eligible** portions of the course at the chosen average speed
 
-## 3.4 Tire mass penalty (watts)
+## 3.5 Tire mass penalty (watts)
 
 TireBot estimates energy required to lift tire mass over total route elevation gain, then converts that energy to average watts over estimated race time.
 
 This term is usually small, but can matter for close calls on hillier routes.
 
-## 3.5 Total resistance ranking
+## 3.6 Total resistance ranking
 
 Final ranking target:
 
@@ -215,10 +242,12 @@ Small differences (< 1-2 W total) are often within modeling noise and should be 
 ## 7) Current limitations
 
 - CRR coverage can be incomplete for some tires/surfaces (interpolation required)
-- Surface categories are simplified into four classes
+- Surface categories are simplified into a few classes; `above` is a manual “super rough” flag
 - Aero model is a practical proxy, not full CFD; GPX grade thresholds for excluding downhills/climbs are heuristics, not physics
 - Tire mass may be estimated if measured data is missing
 - Pressure model is heuristic and should be validated on real terrain and equipment
+- Impedance penalty is a tunable proxy (helps capture “too stiff on rough” effects), not a calibrated suspension/terrain model
+- Tire issue risk can be either heuristic or learned from labeled examples; more labels across more routes will improve generalization
 
 ---
 
@@ -228,6 +257,7 @@ Small differences (< 1-2 W total) are often within modeling noise and should be 
 - include wind assumptions in aero model
 - include temperature/wet-condition modifiers
 - add confidence intervals around rankings
+- expand the labeled risk dataset across more routes and weather conditions
 
 ---
 
