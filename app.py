@@ -44,51 +44,71 @@ IMPEDANCE_TARGET_STIFFNESS = {"road": 26.0, "cat1": 15.0, "cat2": 13.5, "cat3": 
 # Support floor: narrow tires under heavier riders require minimum pressure.
 SUPPORT_PSI_FACTOR = 16.0  # psi ≈ factor * (weight_kg / width_mm)
 
-# Flat/issue risk (route-level proxy) driven by Cat 3 %.
-RISK_CAT3_LOW_PCT = 10.0
-RISK_CAT3_MED_PCT = 25.0
-RISK_NO_CAT3_MILES = 0.25
-RISK_MTB_NO_RISK_MIN_IN = 2.4
+# Flat/issue risk (proxy) driven by rough-surface exposure and tire width.
+RISK_NO_ROUGH_MILES = 0.25
+RISK_MTB_NO_RISK_MIN_IN = 2.2
 RISK_MTB_NO_RISK_MIN_MM = RISK_MTB_NO_RISK_MIN_IN * 25.4
+RISK_MTB_CAP_MED_IN = 2.1
+RISK_MTB_CAP_MED_MM = RISK_MTB_CAP_MED_IN * 25.4
+RISK_SHORT_CAT3_MILES = 3.0
+RISK_SHORT_CAT3_LOW_MM = 40.0
+RISK_SHORT_CAT3_MED_MAX_MM = 34.5
 
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
 
 
-def tire_issue_risk_label(cat3_pct: float) -> str:
-    p = max(0.0, float(cat3_pct))
-    if p < RISK_CAT3_LOW_PCT:
-        return "Low"
-    if p < RISK_CAT3_MED_PCT:
-        return "Medium"
-    return "High"
-
-
 def cat3_distance_mi(segments: List[Segment]) -> float:
     return km_to_mi(sum(s.distance_km for s in segments if s.surface == "cat3"))
 
 
-def tire_issue_risk_for_tire(width_mm: float, cat3_mi: float) -> str:
-    """Low/Medium/High risk proxy based on Cat 3 miles and tire width.
+def cat2_distance_mi(segments: List[Segment]) -> float:
+    return km_to_mi(sum(s.distance_km for s in segments if s.surface == "cat2"))
+
+
+def tire_issue_risk_for_tire(width_mm: float, cat2_mi: float, cat3_mi: float, *, tire_name: str = "") -> str:
+    """Low/Medium/High risk proxy based on rough miles and tire width.
 
     Rule: MTB tires ≥ 2.4\" are treated as no Cat 3 risk.
     """
     w = float(width_mm or 0.0)
+    c2 = max(0.0, float(cat2_mi))
     c3 = max(0.0, float(cat3_mi))
-    if c3 < RISK_NO_CAT3_MILES:
+    # Cat 3 drives issue risk more than Cat 2; Cat 2 contributes but is de-emphasized.
+    rough_mi = (0.2 * c2) + (1.0 * c3)
+
+    if rough_mi < RISK_NO_ROUGH_MILES:
         return "Low"
     if w >= RISK_MTB_NO_RISK_MIN_MM:
         return "Low"
+
+    # Road tires on rough exposure should never show as Low.
+    name = (tire_name or "").lower()
+    is_road = "corsa" in name
+
+    # If Cat 3 exposure is short, cap risk: 40mm+ is Low; very narrow stays Medium at worst.
+    if c3 < RISK_SHORT_CAT3_MILES:
+        if w >= RISK_SHORT_CAT3_LOW_MM and not is_road:
+            return "Low"
+        if w <= RISK_SHORT_CAT3_MED_MAX_MM:
+            return "Medium"
+        return "Medium" if is_road else "Low"
 
     # Narrower tires amplify risk on rough (cat3) exposure.
     # reference width: 50 mm (gravel+). below that increases risk.
     ref = 50.0
     vuln = max(0.0, (ref - w) / ref)
-    score = c3 * (1.0 + 1.8 * vuln)
+    score = rough_mi * (1.0 + 3.0 * vuln)
+    if is_road:
+        score *= 1.35
+
+    if score < 2.0:
+        return "Low" if not is_road else "Medium"
     if score < 6.0:
-        return "Low"
-    if score < 16.0:
+        return "Medium"
+    # Cap: 2.1\" MTB-ish tires shouldn't be "High" even on very rough courses.
+    if w >= RISK_MTB_CAP_MED_MM:
         return "Medium"
     return "High"
 
@@ -1042,8 +1062,9 @@ def main() -> None:
     winner_rr_watts = winner["rr_watts"]
     winner_aero_penalty = winner["aero_penalty_watts"]
     winner_total_watts = winner["total_watts"]
+    cat2_mi = cat2_distance_mi(segments)
     cat3_mi = cat3_distance_mi(segments)
-    risk_label = tire_issue_risk_for_tire(winner_width, cat3_mi)
+    risk_label = tire_issue_risk_for_tire(winner_width, cat2_mi, cat3_mi, tire_name=winner["tire_name"])
     risk_badge = risk_badge_html(risk_label)
 
     st.markdown('<div class="tb-divider-label">Snapshot</div>', unsafe_allow_html=True)
@@ -1090,8 +1111,11 @@ def main() -> None:
         st.markdown('<div class="tb-card">', unsafe_allow_html=True)
         st.markdown('<p class="tb-section-label">Course mix</p>', unsafe_allow_html=True)
         st.subheader("Route composition")
-        st.markdown(f"**Tire issue risk (proxy):** `{risk_label}` (based on Cat 3 miles + tire width)")
-        st.caption(f"Cat 3 distance: **{cat3_mi:.1f} mi**. MTB tires ≥ {RISK_MTB_NO_RISK_MIN_IN:.1f}\" are treated as Low risk on Cat 3.")
+        st.markdown(f"**Tire issue risk (proxy):** `{risk_label}` (based on Cat 2/3 miles + tire width)")
+        st.caption(
+            f"Cat 2 distance: **{cat2_mi:.1f} mi** · Cat 3 distance: **{cat3_mi:.1f} mi**. "
+            f"MTB tires ≥ {RISK_MTB_NO_RISK_MIN_IN:.1f}\" are treated as Low risk on Cat 3."
+        )
         st.progress(min(max(route_stats["road_pct"] / 100.0, 0.0), 1.0), text=f"Road: {route_stats['road_pct']:.1f}%")
         st.progress(min(max(route_stats["cat1_pct"] / 100.0, 0.0), 1.0), text=f"Cat 1: {route_stats['cat1_pct']:.1f}%")
         st.progress(min(max(route_stats["cat2_pct"] / 100.0, 0.0), 1.0), text=f"Cat 2: {route_stats['cat2_pct']:.1f}%")
@@ -1105,7 +1129,7 @@ def main() -> None:
         width_text = f"{result['width_mm']:.1f}"
         tire_width = result["width_mm"]
         f_psi, r_psi = estimate_pressure(tire_width, weight_kg, speed_tier, roughness)
-        risk = tire_issue_risk_for_tire(tire_width, cat3_mi)
+        risk = tire_issue_risk_for_tire(tire_width, cat2_mi, cat3_mi, tire_name=result["tire_name"])
         rows.append(
             {
                 "Rank": idx,
@@ -1179,10 +1203,13 @@ def main() -> None:
             e3.metric("Early aero penalty", f"{early_winner['aero_penalty_watts']:+.1f} W")
 
             early_rows = []
+            early_cat2_mi = cat2_distance_mi(early_segments)
             early_cat3_mi = cat3_distance_mi(early_segments)
             for idx, result in enumerate(early_ranked[: min(top_n, 8)], start=1):
                 f_psi, r_psi = estimate_pressure(result["width_mm"], weight_kg, early_speed_tier, roughness)
-                risk = tire_issue_risk_for_tire(result["width_mm"], early_cat3_mi)
+                risk = tire_issue_risk_for_tire(
+                    result["width_mm"], early_cat2_mi, early_cat3_mi, tire_name=result["tire_name"]
+                )
                 early_rows.append(
                     {
                         "Rank": idx,
