@@ -32,6 +32,9 @@ EARTH_RADIUS_KM = 6371.0
 AERO_EXCLUDE_DOWNHILL_GRADE = -0.012  # below ~-1.2% net → treat as downhill for aero
 AERO_EXCLUDE_STEEP_CLIMB_GRADE = 0.07  # above ~7% → "large climb", aero neglected
 
+MTB_MIN_WIDTH_IN = 2.2
+MTB_MIN_WIDTH_MM = MTB_MIN_WIDTH_IN * 25.4
+
 
 def km_to_mi(km: float) -> float:
     return km * KM_TO_MI
@@ -411,6 +414,14 @@ def speed_tier_from_avg_mph(mph: float) -> str:
     return "amateur"
 
 
+def is_leadville_route(route_csv: Path, event_label: str) -> bool:
+    label = (event_label or "").lower()
+    if "leadville" in label:
+        return True
+    parts = [p.lower() for p in route_csv.parts]
+    return any("leadville" in p for p in parts)
+
+
 def phase_weight(race_position: float, early_boost: float) -> float:
     p = max(0.0, min(1.0, race_position))
     if p <= 0.25:
@@ -775,6 +786,11 @@ def main() -> None:
 
     route_csv = events[event_label]
     tires = load_tires_with_optional_brr(TIRES_CSV, BRR_CRR_CSV)
+    if is_leadville_route(route_csv, event_label):
+        mtb_only = [t for t in tires if (t.get("width_mm") or 0.0) >= MTB_MIN_WIDTH_MM]
+        if mtb_only:
+            tires = mtb_only
+            st.info(f"Leadville filter: showing **MTB tires only** (≥ {MTB_MIN_WIDTH_IN:.1f}\" width).")
     segments = load_segments(route_csv)
     baseline_rows = load_pressure_baseline(PRESSURE_BASELINE_CSV)
     mass_overrides = load_tire_mass_overrides(TIRE_MASS_CSV)
