@@ -1397,7 +1397,45 @@ def main() -> None:
                         )
 
                 dfp = pd.DataFrame(points)
-                chart = (
+                # Segment overlay: surface category bands along the x-axis.
+                seg_rows = []
+                cum = 0.0
+                for seg in ordered:
+                    seg_mi = km_to_mi(seg.distance_km)
+                    if seg_mi <= 0:
+                        continue
+                    start = cum
+                    end = cum + seg_mi
+                    cum = end
+                    surf = (seg.surface or "").strip().lower()
+                    surf_label = {
+                        "road": "Road",
+                        "cat1": "Cat 1",
+                        "cat2": "Cat 2",
+                        "cat3": "Cat 3",
+                        "above": "Above",
+                    }.get(surf, surf or "Unknown")
+                    seg_rows.append({"Start (mi)": start, "End (mi)": end, "Surface": surf_label})
+                dfs = pd.DataFrame(seg_rows)
+
+                seg_layer = (
+                    alt.Chart(dfs)
+                    .mark_rect(opacity=0.14)
+                    .encode(
+                        x=alt.X("Start (mi):Q", title="Course distance (mi)"),
+                        x2="End (mi):Q",
+                        y=alt.value(0),
+                        y2=alt.value(280),
+                        color=alt.Color("Surface:N", title="Segment category"),
+                        tooltip=[
+                            alt.Tooltip("Surface:N"),
+                            alt.Tooltip("Start (mi):Q", format=".1f"),
+                            alt.Tooltip("End (mi):Q", format=".1f"),
+                        ],
+                    )
+                )
+
+                line_layer = (
                     alt.Chart(dfp)
                     .mark_line()
                     .encode(
@@ -1410,6 +1448,11 @@ def main() -> None:
                             alt.Tooltip("Cumulative Δ (min):Q", format=".2f"),
                         ],
                     )
+                )
+
+                chart = (
+                    alt.layer(seg_layer, line_layer)
+                    .resolve_scale(color="independent")
                     .properties(height=280)
                 )
                 st.altair_chart(chart, use_container_width=True)
