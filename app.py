@@ -237,6 +237,20 @@ def inject_styles() -> None:
         overflow: hidden;
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     }
+    /* Make tables more compact and allow header wrapping */
+    [data-testid="stDataFrame"] * {
+        font-size: 0.86rem;
+    }
+    [data-testid="stDataFrame"] th {
+        white-space: normal !important;
+        line-height: 1.1 !important;
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+    [data-testid="stDataFrame"] td {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+    }
 </style>
         """,
         unsafe_allow_html=True,
@@ -927,13 +941,13 @@ def main() -> None:
                 "Tire": result["tire_name"],
                 "Width (mm)": width_text,
                 "Route Score": result["score"],
-                "Rolling Resistance (W)": result["rr_watts"],
-                "Aero Penalty (W)": result["aero_penalty_watts"],
+                "RR (W)": result["rr_watts"],
+                "Aero (W)": result["aero_penalty_watts"],
                 "Tire Mass (g)": result["tire_mass_g"],
-                "Mass Penalty (W)": result["mass_penalty_watts"],
-                "Total Resistance (W)": result["total_watts"],
-                "Front PSI": f_psi,
-                "Rear PSI": r_psi,
+                "Mass (W)": result["mass_penalty_watts"],
+                "Total (W)": result["total_watts"],
+                "F PSI": f_psi,
+                "R PSI": r_psi,
             }
         )
 
@@ -941,15 +955,16 @@ def main() -> None:
         rows,
         use_container_width=True,
         hide_index=True,
+        height=420,
         column_config={
             "Route Score": st.column_config.NumberColumn(format="%.4f"),
-            "Rolling Resistance (W)": st.column_config.NumberColumn(format="%.1f W"),
-            "Aero Penalty (W)": st.column_config.NumberColumn(format="%+.1f W"),
+            "RR (W)": st.column_config.NumberColumn(format="%.1f W"),
+            "Aero (W)": st.column_config.NumberColumn(format="%+.1f W"),
             "Tire Mass (g)": st.column_config.NumberColumn(format="%.0f g"),
-            "Mass Penalty (W)": st.column_config.NumberColumn(format="%+.2f W"),
-            "Total Resistance (W)": st.column_config.NumberColumn(format="%.1f W"),
-            "Front PSI": st.column_config.NumberColumn(format="%.1f"),
-            "Rear PSI": st.column_config.NumberColumn(format="%.1f"),
+            "Mass (W)": st.column_config.NumberColumn(format="%+.2f W"),
+            "Total (W)": st.column_config.NumberColumn(format="%.1f W"),
+            "F PSI": st.column_config.NumberColumn(format="%.1f"),
+            "R PSI": st.column_config.NumberColumn(format="%.1f"),
         },
     )
 
@@ -994,15 +1009,15 @@ def main() -> None:
                         "Rank": idx,
                         "Tire": result["tire_name"],
                         "Width (mm)": f"{result['width_mm']:.1f}",
-                        "Rolling Resistance (W)": result["rr_watts"],
-                        "Aero Penalty (W)": result["aero_penalty_watts"],
-                        "Mass Penalty (W)": result["mass_penalty_watts"],
-                        "Total Resistance (W)": result["total_watts"],
-                        "Front PSI": f_psi,
-                        "Rear PSI": r_psi,
+                    "RR (W)": result["rr_watts"],
+                    "Aero (W)": result["aero_penalty_watts"],
+                    "Mass (W)": result["mass_penalty_watts"],
+                    "Total (W)": result["total_watts"],
+                    "F PSI": f_psi,
+                    "R PSI": r_psi,
                     }
                 )
-            st.dataframe(early_rows, use_container_width=True, hide_index=True)
+            st.dataframe(early_rows, use_container_width=True, hide_index=True, height=320)
 
     render_feedback_footer(route_context_str)
 
